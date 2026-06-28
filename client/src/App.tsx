@@ -13,6 +13,7 @@ function App() {
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<Navigate to="/mapa" replace />} />
+            <Route path="/" element={<MapaPage />} />
             <Route path="mapa" element={<MapaPage />} />
             <Route path="crear" element={<CrearPage />} />
             <Route path="panel" element={<PanelPage />} />
