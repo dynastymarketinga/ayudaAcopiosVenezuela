@@ -1788,7 +1788,7 @@
 .crear-page {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 1.5rem 1.25rem 6rem;
+  padding: 1.5rem 1.25rem 8.5rem;
   width: 100%;
 }
 
@@ -1797,11 +1797,30 @@
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.25rem;
   padding: 1.75rem 1.5rem;
   border-radius: 16px;
   border: 1px solid var(--border);
   background: linear-gradient(135deg, var(--card-bg, var(--code-bg)) 0%, var(--brand-glow) 100%);
+}
+
+.crear-hero-compact {
+  margin-bottom: 1rem;
+  padding: 1.25rem 1.25rem;
+}
+
+.crear-hero-compact .crear-hero-logo {
+  width: 72px;
+  height: 72px;
+}
+
+.crear-hero-compact h1 {
+  font-size: clamp(1.35rem, 3.5vw, 1.75rem);
+  margin-bottom: 0.35rem;
+}
+
+.crear-hero-compact .crear-hero-sub {
+  font-size: 0.9rem;
 }
 
 .crear-hero-copy {
@@ -1853,6 +1872,65 @@
 
 .crear-form {
   margin: 0;
+}
+
+.crear-checklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 0 0 1.25rem;
+  padding: 0.85rem 1rem;
+  list-style: none;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--card-bg, var(--code-bg));
+}
+
+.crear-checklist li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+.crear-checklist li.done {
+  color: var(--text-h);
+  font-weight: 500;
+}
+
+.crear-checklist li.pending {
+  color: var(--text);
+}
+
+.crear-checklist li.optional {
+  color: var(--text);
+}
+
+.crear-check-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  font-size: 0.85rem;
+  color: var(--brand);
+}
+
+.crear-checklist li.pending .crear-check-icon {
+  color: var(--text);
+}
+
+.checklist-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--brand);
+}
+
+.badge-recommended {
+  background: rgba(56, 189, 248, 0.18);
+  color: var(--brand);
 }
 
 .crear-grid {
@@ -1998,6 +2076,22 @@
   font-size: 0.88rem;
 }
 
+.crear-map-ok {
+  margin: 0 0 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.45);
+  color: var(--text-h);
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.crear-map-ok-detail {
+  font-weight: 400;
+  color: var(--text);
+}
+
 .crear-map-wrap .map-container {
   border-radius: 12px;
   transition: box-shadow 0.2s ease;
@@ -2015,6 +2109,10 @@
   cursor: pointer;
   list-style: none;
   margin-bottom: 0;
+}
+
+.crear-contact-fields {
+  margin-top: 1rem;
 }
 
 .crear-details-summary::-webkit-details-marker {
@@ -2035,21 +2133,25 @@
 
 .crear-submit-bar {
   position: sticky;
-  bottom: 0;
+  bottom: 0.75rem;
   z-index: 50;
   margin-top: 1.5rem;
-  padding: 1rem 1.25rem;
+  padding: 0.85rem 1rem;
   border-radius: 14px;
   border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
 }
 
 .crear-submit-hint {
   margin: 0;
   font-size: 0.88rem;
   color: var(--text);
+}
+
+.crear-submit-bar .error {
+  margin-bottom: 0.5rem;
 }
 
 .crear-submit-btn {

@@ -14,6 +14,7 @@ interface SuministrosPickerProps {
   items: SuministroNecesario[]
   onChange: (next: SuministroNecesario[]) => void
   onPersist?: (next: SuministroNecesario[]) => Promise<void>
+  compact?: boolean
 }
 
 function sortSuministros(items: SuministroNecesario[]) {
@@ -22,7 +23,7 @@ function sortSuministros(items: SuministroNecesario[]) {
   )
 }
 
-export function SuministrosPicker({ items, onChange, onPersist }: SuministrosPickerProps) {
+export function SuministrosPicker({ items, onChange, onPersist, compact = false }: SuministrosPickerProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [activeCategory, setActiveCategory] = useState<Suministro | null>(null)
   const [draftArticulos, setDraftArticulos] = useState<string[]>([''])
@@ -168,7 +169,9 @@ export function SuministrosPicker({ items, onChange, onPersist }: SuministrosPic
           {persisting
             ? 'Guardando...'
             : categoryCount === 0
-              ? 'Ninguna categoría configurada'
+              ? compact
+                ? 'Toca una categoría abajo'
+                : 'Ninguna categoría configurada'
               : `${categoryCount} categoría${categoryCount !== 1 ? 's' : ''} · ${articulosCount} artículo${articulosCount !== 1 ? 's' : ''}`}
         </span>
         <div className="suministros-toolbar-actions">
@@ -220,9 +223,11 @@ export function SuministrosPicker({ items, onChange, onPersist }: SuministrosPic
           ))}
         </ul>
       ) : (
-        <p className="suministros-empty-hint">
-          Elige una categoría y agrega los artículos que necesitas recibir.
-        </p>
+        !compact && (
+          <p className="suministros-empty-hint">
+            Elige una categoría y agrega los artículos que necesitas recibir.
+          </p>
+        )
       )}
 
       <div className="suministros-grid" role="group" aria-label="Categorías de suministros">

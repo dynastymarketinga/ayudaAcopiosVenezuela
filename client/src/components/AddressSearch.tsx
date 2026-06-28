@@ -5,9 +5,10 @@ interface AddressSearchProps {
   value: string
   onChange: (value: string) => void
   onSelect: (result: GeocodeResult) => void
+  showHint?: boolean
 }
 
-export function AddressSearch({ value, onChange, onSelect }: AddressSearchProps) {
+export function AddressSearch({ value, onChange, onSelect, showHint = true }: AddressSearchProps) {
   const [results, setResults] = useState<GeocodeResult[]>([])
   const [open, setOpen] = useState(false)
   const [searching, setSearching] = useState(false)
@@ -125,9 +126,11 @@ export function AddressSearch({ value, onChange, onSelect }: AddressSearchProps)
         </ul>
       )}
 
-      <p className="address-search-hint">
-        Escribe una dirección y selecciona un resultado para ubicar tu centro en el mapa.
-      </p>
+      {showHint && (
+        <p className="address-search-hint">
+          Escribe una dirección y selecciona un resultado para ubicar tu centro en el mapa.
+        </p>
+      )}
     </div>
   )
 }

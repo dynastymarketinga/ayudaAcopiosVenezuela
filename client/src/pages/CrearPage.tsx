@@ -12,15 +12,11 @@ import type { SuministroNecesario } from '../constants/supplies'
 const MAX_IMAGES = 10
 const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,image/gif'
 
-function getSubmitHint(nombreValid: boolean, hasPosition: boolean): string | null {
-  if (!nombreValid) return 'Ingresa el nombre del centro'
-  if (!hasPosition) return 'Marca tu ubicación en el mapa'
-  return null
-}
-
 export function CrearPage() {
   const inputRef = useRef<HTMLInputElement>(null)
   const nombreInputRef = useRef<HTMLInputElement>(null)
+  const ubicacionSectionRef = useRef<HTMLElement>(null)
+  const submitBarRef = useRef<HTMLDivElement>(null)
   const [nombre, setNombre] = useState('')
   const [position, setPosition] = useState<[number, number] | null>(null)
   const [flyTo, setFlyTo] = useState<[number, number] | null>(null)
@@ -39,8 +35,8 @@ export function CrearPage() {
   const [dragOver, setDragOver] = useState(false)
 
   const isNombreValid = nombre.trim().length > 0
+  const hasSuministros = suministros.length > 0
   const canSubmit = isNombreValid && position !== null
-  const submitHint = getSubmitHint(isNombreValid, position !== null)
 
   useEffect(() => {
     const urls = pendingImages.map((file) => URL.createObjectURL(file))
@@ -50,12 +46,17 @@ export function CrearPage() {
     }
   }, [pendingImages])
 
+  function scrollToFeedback(target: HTMLElement | null) {
+    target?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }
+
   function addFiles(files: File[]) {
     if (files.length === 0) return
     setPendingImages((current) => {
       const combined = [...current, ...files]
       if (combined.length > MAX_IMAGES) {
         setError(`Máximo ${MAX_IMAGES} imágenes`)
+        scrollToFeedback(submitBarRef.current)
         return current
       }
       setError(null)
@@ -99,11 +100,13 @@ export function CrearPage() {
       setNombreError(message)
       setError(message)
       nombreInputRef.current?.focus()
+      scrollToFeedback(nombreInputRef.current?.closest('section') ?? null)
       return
     }
     setNombreError(null)
     if (!position) {
-      setError('Selecciona tu ubicación en el mapa')
+      setError('Marca tu ubicación en el mapa')
+      scrollToFeedback(ubicacionSectionRef.current)
       return
     }
 
@@ -112,6 +115,7 @@ export function CrearPage() {
       setError(
         `Agrega artículos en: ${incomplete.map((item) => item.categoria).join(', ')}`,
       )
+      scrollToFeedback(submitBarRef.current)
       return
     }
 
@@ -141,6 +145,7 @@ export function CrearPage() {
       setCreated(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el centro')
+      scrollToFeedback(submitBarRef.current)
     } finally {
       setSubmitting(false)
     }
@@ -166,23 +171,36 @@ export function CrearPage() {
 
   return (
     <div className="crear-page">
-      <header className="crear-hero">
+      <header className="crear-hero crear-hero-compact">
         <div className="crear-hero-copy">
-          <p className="crear-eyebrow">Red de Acopio Venezuela</p>
           <h1>Publica tu centro en el mapa</h1>
-          <p className="crear-hero-sub">
-            Conecta con personas que quieren ayudar. Gratis, sin cuenta y visible en minutos.
-          </p>
-          <ul className="crear-trust-list" aria-label="Beneficios">
-            <li>✓ Gratis</li>
-            <li>✓ Sin registro</li>
-            <li>✓ Visible en minutos</li>
-          </ul>
+          <p className="crear-hero-sub">Gratis y sin registro — visible en minutos.</p>
         </div>
-        <img src="/logo.png" alt="" className="crear-hero-logo" width={120} height={120} />
+        <img src="/logo.png" alt="" className="crear-hero-logo" width={80} height={80} />
       </header>
 
       <form className="crear-form dashboard-form" onSubmit={handleSubmit}>
+        <ul className="crear-checklist" aria-label="Requisitos para publicar">
+          <li className={isNombreValid ? 'done' : 'pending'}>
+            <span className="crear-check-icon" aria-hidden="true">
+              {isNombreValid ? '✓' : '○'}
+            </span>
+            Nombre del centro
+          </li>
+          <li className={position ? 'done' : 'pending'}>
+            <span className="crear-check-icon" aria-hidden="true">
+              {position ? '✓' : '○'}
+            </span>
+            Ubicación en el mapa
+          </li>
+          <li className={hasSuministros ? 'done optional' : 'optional'}>
+            <span className="crear-check-icon" aria-hidden="true">
+              {hasSuministros ? '✓' : '·'}
+            </span>
+            Suministros <span className="checklist-tag">recomendado</span>
+          </li>
+        </ul>
+
         <div className="crear-grid">
           <section className="card crear-card">
             <h2 className="crear-card-title">
@@ -191,7 +209,7 @@ export function CrearPage() {
             </h2>
             <label className="crear-field">
               <span>
-                Nombre del centro <span className="required-mark">*</span>
+                Nombre <span className="required-mark">*</span>
               </span>
               <input
                 ref={nombreInputRef}
@@ -199,13 +217,13 @@ export function CrearPage() {
                 onChange={(e) => {
                   setNombre(e.target.value)
                   if (nombreError) setNombreError(null)
+                  if (error?.includes('nombre')) setError(null)
                 }}
                 placeholder="Ej: Centro comunitario Norte"
                 required
                 aria-required="true"
                 aria-invalid={nombreError ? true : undefined}
               />
-              <span className="field-hint">Aparecerá en el mapa y en las búsquedas</span>
               {nombreError && <p className="error">{nombreError}</p>}
             </label>
 
@@ -221,7 +239,6 @@ export function CrearPage() {
                   </option>
                 ))}
               </select>
-              <span className="field-hint">Define el icono en el mapa</span>
             </label>
           </section>
 
@@ -229,6 +246,7 @@ export function CrearPage() {
             <h2 className="crear-card-title">
               <span className="crear-step">2</span>
               Fotos
+              <span className="badge-optional">Opcional</span>
             </h2>
             <input
               ref={inputRef}
@@ -290,22 +308,27 @@ export function CrearPage() {
             )}
           </section>
 
-          <section className="card crear-card crear-grid-full">
+          <section ref={ubicacionSectionRef} className="card crear-card crear-grid-full">
             <h2 className="crear-card-title">
               <span className="crear-step">3</span>
               Ubicación <span className="required-mark">*</span>
             </h2>
-            <p className="crear-card-desc">
-              Busca tu dirección o haz clic en el mapa para marcar dónde está tu centro.
-            </p>
             <AddressSearch
               value={direccion}
               onChange={setDireccion}
               onSelect={handleAddressSelect}
+              showHint={!position}
             />
-            {!position && (
+            {position ? (
+              <p className="crear-map-ok" role="status">
+                ✓ Ubicación marcada
+                {direccion.trim() && (
+                  <span className="crear-map-ok-detail"> — {direccion.trim()}</span>
+                )}
+              </p>
+            ) : (
               <p className="crear-map-hint" role="status">
-                Haz clic en el mapa o busca una dirección para marcar tu centro
+                Busca tu dirección o haz clic en el mapa
               </p>
             )}
             <div className={`crear-map-wrap ${position ? 'has-marker' : ''}`}>
@@ -320,16 +343,13 @@ export function CrearPage() {
           </section>
 
           <section className="card crear-card crear-grid-full">
-            <details className="crear-contact-details" open>
+            <details className="crear-contact-details">
               <summary className="crear-card-title crear-details-summary">
                 <span className="crear-step">4</span>
                 Contacto
                 <span className="badge-optional">Opcional</span>
               </summary>
-              <p className="crear-card-desc">
-                Teléfonos, correos y sitios web para que te puedan escribir o llamar.
-              </p>
-              <div className="contact-fields">
+              <div className="contact-fields crear-contact-fields">
                 <ContactListField
                   label="Teléfonos"
                   placeholder="Ej: +58 412 1234567"
@@ -359,18 +379,14 @@ export function CrearPage() {
             <h2 className="crear-card-title">
               <span className="crear-step">5</span>
               ¿Qué necesitas?
+              <span className="badge-optional badge-recommended">Recomendado</span>
             </h2>
-            <p className="crear-card-desc">
-              Elige categorías y agrega artículos concretos. Así quien quiera ayudar sabrá
-              exactamente qué llevar.
-            </p>
-            <SuministrosPicker items={suministros} onChange={setSuministros} />
+            <SuministrosPicker items={suministros} onChange={setSuministros} compact />
           </section>
         </div>
 
-        <div className="crear-submit-bar save-actions">
+        <div ref={submitBarRef} className="crear-submit-bar save-actions">
           {error && <p className="error">{error}</p>}
-          {submitHint && !error && <p className="crear-submit-hint">{submitHint}</p>}
           <button type="submit" className="btn-save crear-submit-btn" disabled={submitting || !canSubmit}>
             {submitting ? 'Publicando...' : 'Publicar en el mapa'}
           </button>
