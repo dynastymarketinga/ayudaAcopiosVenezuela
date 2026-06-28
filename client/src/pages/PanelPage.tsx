@@ -14,6 +14,7 @@ const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,image/gif'
 
 function CrearCentroForm() {
   const inputRef = useRef<HTMLInputElement>(null)
+  const nombreInputRef = useRef<HTMLInputElement>(null)
   const [nombre, setNombre] = useState('')
   const [position, setPosition] = useState<[number, number] | null>(null)
   const [flyTo, setFlyTo] = useState<[number, number] | null>(null)
@@ -27,7 +28,10 @@ function CrearCentroForm() {
   const [previewUrls, setPreviewUrls] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [nombreError, setNombreError] = useState<string | null>(null)
   const [created, setCreated] = useState(false)
+
+  const isNombreValid = nombre.trim().length > 0
 
   useEffect(() => {
     const urls = pendingImages.map((file) => URL.createObjectURL(file))
@@ -64,12 +68,23 @@ function CrearCentroForm() {
     setPendingImages((current) => current.filter((_, i) => i !== index))
   }
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault()
-    if (!nombre.trim()) {
-      setError('Ingresa el nombre del centro')
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    const form = event.currentTarget
+    if (!form.checkValidity()) {
+      form.reportValidity()
       return
     }
+
+    event.preventDefault()
+
+    if (!isNombreValid) {
+      const message = 'Ingresa el nombre del centro'
+      setNombreError(message)
+      setError(message)
+      nombreInputRef.current?.focus()
+      return
+    }
+    setNombreError(null)
     if (!position) {
       setError('Selecciona tu ubicación en el mapa')
       return
@@ -149,13 +164,20 @@ function CrearCentroForm() {
             Este es el nombre con el que aparecerá tu centro en el mapa y en las búsquedas.
           </p>
           <label>
-            Nombre
+            Nombre (obligatorio)
             <input
+              ref={nombreInputRef}
               value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
+              onChange={(e) => {
+                setNombre(e.target.value)
+                if (nombreError) setNombreError(null)
+              }}
               placeholder="Ej: Centro comunitario Norte"
               required
+              aria-required="true"
+              aria-invalid={nombreError ? true : undefined}
             />
+            {nombreError && <p className="error">{nombreError}</p>}
           </label>
         </section>
 
@@ -292,7 +314,7 @@ function CrearCentroForm() {
 
         <div className="save-actions">
           {error && <p className="error">{error}</p>}
-          <button type="submit" className="btn-save" disabled={submitting}>
+          <button type="submit" className="btn-save" disabled={submitting || !isNombreValid}>
             {submitting ? 'Creando...' : 'Crear centro de acopio'}
           </button>
         </div>

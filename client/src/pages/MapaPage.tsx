@@ -7,9 +7,9 @@ import { CentrosMap } from '../components/CentrosMap'
 import { RelativeCreatedAt } from '../components/RelativeCreatedAt'
 import { SuministrosDisplay } from '../components/SuministrosDisplay'
 import { getTipoLugarLabel, TIPOS_LUGAR, type TipoLugarId } from '../constants/placeTypes'
+import { getEstadoName, VENEZUELA_ESTADOS, type EstadoFilter } from '../constants/venezuelaEstados'
 import { countArticulos } from '../constants/supplies'
-
-type TipoFilter = 'todos' | TipoLugarId
+import { matchesEstadoFilter, resolveEstado } from '../utils/estado'
 
 type MapSelection =
   | { kind: 'centro'; data: Centro }
@@ -183,7 +183,8 @@ export function MapaPage() {
   const [centros, setCentros] = useState<Centro[]>([])
   const [hospitales, setHospitales] = useState<Hospital[]>(() => getCachedHospitals() ?? [])
   const [selected, setSelected] = useState<MapSelection | null>(null)
-  const [tipoFilter, setTipoFilter] = useState<TipoFilter>('todos')
+  const [tipoFilters, setTipoFilters] = useState<Set<TipoLugarId>>(() => new Set())
+  const [estadoFilter, setEstadoFilter] = useState<EstadoFilter>('todos')
   const [nameSearch, setNameSearch] = useState('')
   const [loadingCentros, setLoadingCentros] = useState(true)
   const [loadingHospitales, setLoadingHospitales] = useState(() => getCachedHospitals() === null)
@@ -207,32 +208,58 @@ export function MapaPage() {
       .finally(() => setLoadingHospitales(false))
   }, [])
 
-  const showHospitales = tipoFilter === 'todos' || tipoFilter === 'hospital'
+  const showHospitales = tipoFilters.size === 0 || tipoFilters.has('hospital')
   const query = nameSearch.trim().toLowerCase()
+  const showHospitalList =
+    showHospitales && (tipoFilters.size > 0 || !!query || estadoFilter !== 'todos')
 
   const filteredCentros = useMemo(() => {
     let result = centros
-    if (tipoFilter !== 'todos') {
-      result = result.filter((centro) => centro.tipoLugar === tipoFilter)
+    if (tipoFilters.size > 0) {
+      result = result.filter((centro) => tipoFilters.has(centro.tipoLugar))
+    }
+    if (estadoFilter !== 'todos') {
+      result = result.filter((centro) => matchesEstadoFilter(centro, estadoFilter))
     }
     if (query) {
       result = result.filter((centro) => centro.nombre.toLowerCase().includes(query))
     }
     return result
-  }, [centros, tipoFilter, query])
+  }, [centros, tipoFilters, estadoFilter, query])
 
   const filteredHospitales = useMemo(() => {
     if (!showHospitales) return []
     let result = hospitales
+    if (estadoFilter !== 'todos') {
+      result = result.filter((hospital) => matchesEstadoFilter(hospital, estadoFilter))
+    }
     if (query) {
       result = result.filter((hospital) => hospital.nombre.toLowerCase().includes(query))
     }
     return result
-  }, [hospitales, showHospitales, query])
+  }, [hospitales, showHospitales, estadoFilter, query])
+
+  const estadoCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+
+    for (const centro of centros) {
+      const estadoId = resolveEstado(centro)
+      if (!estadoId) continue
+      counts.set(estadoId, (counts.get(estadoId) ?? 0) + 1)
+    }
+
+    for (const hospital of hospitales) {
+      const estadoId = resolveEstado(hospital)
+      if (!estadoId) continue
+      counts.set(estadoId, (counts.get(estadoId) ?? 0) + 1)
+    }
+
+    return counts
+  }, [centros, hospitales])
 
   const sidebarHospitales = useMemo(() => {
     if (!showHospitales) return []
-    if (tipoFilter === 'todos' && !query) {
+    if (!showHospitalList) {
       if (selected?.kind === 'hospital') return [selected.data]
       return []
     }
@@ -241,7 +268,7 @@ export function MapaPage() {
       return [selected.data, ...list].slice(0, 81)
     }
     return list
-  }, [filteredHospitales, showHospitales, tipoFilter, query, selected])
+  }, [filteredHospitales, showHospitales, showHospitalList, selected])
 
   const mapItems = useMemo((): MapListItem[] => {
     const items: MapListItem[] = [
@@ -282,6 +309,19 @@ export function MapaPage() {
       return { kind: 'hospital', data: hospital }
     })
     setSidebarOpen(true)
+  }
+
+  function toggleTipoFilter(tipoId: TipoLugarId) {
+    setTipoFilters((prev) => {
+      const next = new Set(prev)
+      if (next.has(tipoId)) next.delete(tipoId)
+      else next.add(tipoId)
+      return next
+    })
+  }
+
+  function clearTipoFilters() {
+    setTipoFilters(new Set())
   }
 
   const loading = loadingCentros
@@ -340,6 +380,26 @@ export function MapaPage() {
           />
         </section>
 
+        <section className="estado-filter">
+          <label htmlFor="estado-filter-select">Filtrar por estado</label>
+          <select
+            id="estado-filter-select"
+            value={estadoFilter}
+            onChange={(e) => setEstadoFilter(e.target.value as EstadoFilter)}
+          >
+            <option value="todos">Todos los estados</option>
+            {VENEZUELA_ESTADOS.map((estado) => {
+              const count = estadoCounts.get(estado.id) ?? 0
+              return (
+                <option key={estado.id} value={estado.id} disabled={count === 0}>
+                  {estado.name}
+                  {count > 0 ? ` (${count})` : ''}
+                </option>
+              )
+            })}
+          </select>
+        </section>
+
         {errorCentros && <p className="error">{errorCentros}</p>}
         {errorHospitales && <p className="error">{errorHospitales}</p>}
 
@@ -348,8 +408,9 @@ export function MapaPage() {
           <div className="tipo-filter-chips">
             <button
               type="button"
-              className={`tipo-chip ${tipoFilter === 'todos' ? 'active' : ''}`}
-              onClick={() => setTipoFilter('todos')}
+              className={`tipo-chip ${tipoFilters.size === 0 ? 'active' : ''}`}
+              onClick={clearTipoFilters}
+              aria-pressed={tipoFilters.size === 0}
             >
               Todos
             </button>
@@ -357,8 +418,9 @@ export function MapaPage() {
               <button
                 key={tipo.id}
                 type="button"
-                className={`tipo-chip ${tipoFilter === tipo.id ? 'active' : ''}`}
-                onClick={() => setTipoFilter(tipo.id)}
+                className={`tipo-chip ${tipoFilters.has(tipo.id) ? 'active' : ''}`}
+                onClick={() => toggleTipoFilter(tipo.id)}
+                aria-pressed={tipoFilters.has(tipo.id)}
               >
                 <span className="tipo-chip-dot" style={{ background: tipo.color }} />
                 {tipo.label}
@@ -380,10 +442,10 @@ export function MapaPage() {
           <p className="mapa-stats mapa-stats-loading">Cargando hospitales en segundo plano…</p>
         )}
 
-        {showHospitales && !loadingHospitales && tipoFilter === 'todos' && !query && (
+        {showHospitales && !loadingHospitales && !showHospitalList && (
           <p className="mapa-hint">
-            Los hospitales se muestran agrupados en el mapa. Busca por nombre o filtra por Hospital
-            para ver la lista.
+            Los hospitales se muestran agrupados en el mapa. Busca por nombre, filtra por estado o
+            selecciona uno o más tipos (incluyendo Hospital) para ver la lista.
           </p>
         )}
 
@@ -395,12 +457,14 @@ export function MapaPage() {
               ? 'Aún no hay lugares para mostrar.'
               : nameSearch.trim()
                 ? `No hay resultados para "${nameSearch.trim()}".`
-                : 'No hay lugares de este tipo en el mapa.'}
+                : estadoFilter !== 'todos'
+                  ? `No hay lugares en ${getEstadoName(estadoFilter)} con estos filtros.`
+                  : 'No hay lugares de este tipo en el mapa.'}
           </p>
         ) : sidebarTotal === 0 && hospitalsOnMap.length > 0 ? (
           <p className="empty">
             {filteredCentros.length === 0
-              ? 'Usa el buscador o el filtro Hospital para ver la lista de hospitales.'
+              ? 'Selecciona Hospital u otros filtros para ver la lista de hospitales.'
               : 'No hay centros de acopio con ese criterio. Los hospitales están visibles en el mapa.'}
           </p>
         ) : (

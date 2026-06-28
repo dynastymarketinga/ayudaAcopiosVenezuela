@@ -402,6 +402,27 @@
   margin-bottom: 1.25rem;
 }
 
+.estado-filter {
+  margin-bottom: 1.25rem;
+}
+
+.estado-filter label {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--text-h);
+  margin-bottom: 0.5rem;
+}
+
+.estado-filter select {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+}
+
 .centro-name-search {
   margin-bottom: 1.25rem;
 }
@@ -1588,7 +1609,7 @@
     top: var(--navbar-height);
     left: 0;
     bottom: 0;
-    width: min(360px, 88vw);
+    width: 94vw;
     max-height: none;
     z-index: 1200;
     transform: translateX(-100%);
