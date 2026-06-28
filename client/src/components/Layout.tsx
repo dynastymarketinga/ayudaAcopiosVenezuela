@@ -37,9 +37,6 @@ export function Layout() {
           <NavLink to="/crear" className={({ isActive }) => (isActive ? 'active' : '')}>
             Crear centro de acopio
           </NavLink>
-          <NavLink to="/panel" className={({ isActive }) => (isActive ? 'active' : '')}>
-            Panel
-          </NavLink>
         </div>
       </nav>
       {menuOpen && (
