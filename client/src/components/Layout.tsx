@@ -4,8 +4,6 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 export function Layout() {
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
-  const isMapa = location.pathname === '/mapa'
-  const isCrear = location.pathname === '/crear'
 
   useEffect(() => {
     setMenuOpen(false)
@@ -13,11 +11,11 @@ export function Layout() {
 
   return (
     <div
-      className={`layout ${menuOpen ? 'nav-open' : ''} ${isMapa ? 'layout-mapa' : ''} ${isCrear ? 'layout-crear' : ''}`}
+      className={`layout ${menuOpen ? 'nav-open' : ''} ${location.pathname === '/mapa' ? 'layout-mapa' : ''}`}
     >
       <nav className="navbar">
         <NavLink to="/" className="navbar-brand" onClick={() => setMenuOpen(false)}>
-          <img src="/logo.png" alt="" className="navbar-logo" width={36} height={36} />
+          <img src="/logo.png" alt="" className="navbar-logo" width={40} height={40} />
           <span className="navbar-brand-text">
             <strong>Red de Acopio</strong>
             <small>Venezuela</small>

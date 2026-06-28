@@ -168,7 +168,7 @@ export function SuministrosPicker({ items, onChange, onPersist }: SuministrosPic
           {persisting
             ? 'Guardando...'
             : categoryCount === 0
-              ? 'Toca las categorías que necesitas'
+              ? 'Ninguna categoría configurada'
               : `${categoryCount} categoría${categoryCount !== 1 ? 's' : ''} · ${articulosCount} artículo${articulosCount !== 1 ? 's' : ''}`}
         </span>
         <div className="suministros-toolbar-actions">
