@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import type { GeocodeResult } from '../api/geocode'
 import { createCentro, uploadCentroImagenesPublic } from '../api/centros'
@@ -15,6 +15,8 @@ const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,image/gif'
 export function CrearPage() {
   const inputRef = useRef<HTMLInputElement>(null)
   const nombreInputRef = useRef<HTMLInputElement>(null)
+  const ubicacionSectionRef = useRef<HTMLElement>(null)
+  const submitBarRef = useRef<HTMLDivElement>(null)
   const [nombre, setNombre] = useState('')
   const [position, setPosition] = useState<[number, number] | null>(null)
   const [flyTo, setFlyTo] = useState<[number, number] | null>(null)
@@ -30,8 +32,11 @@ export function CrearPage() {
   const [error, setError] = useState<string | null>(null)
   const [nombreError, setNombreError] = useState<string | null>(null)
   const [created, setCreated] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
 
   const isNombreValid = nombre.trim().length > 0
+  const hasSuministros = suministros.length > 0
+  const canSubmit = isNombreValid && position !== null
 
   useEffect(() => {
     const urls = pendingImages.map((file) => URL.createObjectURL(file))
@@ -41,6 +46,24 @@ export function CrearPage() {
     }
   }, [pendingImages])
 
+  function scrollToFeedback(target: HTMLElement | null) {
+    target?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }
+
+  function addFiles(files: File[]) {
+    if (files.length === 0) return
+    setPendingImages((current) => {
+      const combined = [...current, ...files]
+      if (combined.length > MAX_IMAGES) {
+        setError(`Máximo ${MAX_IMAGES} imágenes`)
+        scrollToFeedback(submitBarRef.current)
+        return current
+      }
+      setError(null)
+      return combined
+    })
+  }
+
   function handleAddressSelect(result: GeocodeResult) {
     const coords: [number, number] = [result.lat, result.lng]
     setPosition(coords)
@@ -49,19 +72,14 @@ export function CrearPage() {
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? [])
+    addFiles(Array.from(event.target.files ?? []))
     event.target.value = ''
-    if (files.length === 0) return
+  }
 
-    setPendingImages((current) => {
-      const combined = [...current, ...files]
-      if (combined.length > MAX_IMAGES) {
-        setError(`Máximo ${MAX_IMAGES} imágenes`)
-        return current
-      }
-      setError(null)
-      return combined
-    })
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault()
+    setDragOver(false)
+    addFiles(Array.from(event.dataTransfer.files).filter((f) => f.type.startsWith('image/')))
   }
 
   function removePendingImage(index: number) {
@@ -82,11 +100,13 @@ export function CrearPage() {
       setNombreError(message)
       setError(message)
       nombreInputRef.current?.focus()
+      scrollToFeedback(nombreInputRef.current?.closest('section') ?? null)
       return
     }
     setNombreError(null)
     if (!position) {
-      setError('Selecciona tu ubicación en el mapa')
+      setError('Marca tu ubicación en el mapa')
+      scrollToFeedback(ubicacionSectionRef.current)
       return
     }
 
@@ -95,6 +115,7 @@ export function CrearPage() {
       setError(
         `Agrega artículos en: ${incomplete.map((item) => item.categoria).join(', ')}`,
       )
+      scrollToFeedback(submitBarRef.current)
       return
     }
 
@@ -124,6 +145,7 @@ export function CrearPage() {
       setCreated(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el centro')
+      scrollToFeedback(submitBarRef.current)
     } finally {
       setSubmitting(false)
     }
@@ -131,12 +153,13 @@ export function CrearPage() {
 
   if (created) {
     return (
-      <div className="panel-dashboard">
-        <section className="card">
-          <h1>Centro creado</h1>
-          <p className="panel-subtitle">
-            Tu centro de acopio ya está publicado en el mapa. Las personas podrán ver qué
-            suministros necesitas.
+      <div className="crear-page">
+        <section className="card crear-success-card">
+          <img src="/logo.png" alt="" className="crear-success-logo" width={72} height={72} />
+          <h1>¡Centro publicado!</h1>
+          <p className="crear-hero-sub">
+            Tu centro ya está en el mapa nacional. Las personas podrán ver qué suministros
+            necesitas y cómo contactarte.
           </p>
           <Link to="/mapa" className="btn-save">
             Ver en el mapa
@@ -147,46 +170,84 @@ export function CrearPage() {
   }
 
   return (
-    <div className="panel-dashboard">
-      <header className="panel-header">
-        <div>
-          <h1>Crear centro de acopio</h1>
-          <p className="panel-subtitle">
-            Completa la información de tu centro para publicarlo en el mapa.
-          </p>
+    <div className="crear-page">
+      <header className="crear-hero crear-hero-compact">
+        <div className="crear-hero-copy">
+          <h1>Publica tu centro en el mapa</h1>
+          <p className="crear-hero-sub">Gratis y sin registro — visible en minutos.</p>
         </div>
+        <img src="/logo.png" alt="" className="crear-hero-logo" width={80} height={80} />
       </header>
 
-      <form className="dashboard-form" onSubmit={handleSubmit}>
-        <section className="card">
-          <h2>Nombre del centro</h2>
-          <p className="panel-subtitle">
-            Este es el nombre con el que aparecerá tu centro en el mapa y en las búsquedas.
-          </p>
-          <label>
-            Nombre (obligatorio)
-            <input
-              ref={nombreInputRef}
-              value={nombre}
-              onChange={(e) => {
-                setNombre(e.target.value)
-                if (nombreError) setNombreError(null)
-              }}
-              placeholder="Ej: Centro comunitario Norte"
-              required
-              aria-required="true"
-              aria-invalid={nombreError ? true : undefined}
-            />
-            {nombreError && <p className="error">{nombreError}</p>}
-          </label>
-        </section>
+      <form className="crear-form dashboard-form" onSubmit={handleSubmit}>
+        <ul className="crear-checklist" aria-label="Requisitos para publicar">
+          <li className={isNombreValid ? 'done' : 'pending'}>
+            <span className="crear-check-icon" aria-hidden="true">
+              {isNombreValid ? '✓' : '○'}
+            </span>
+            Nombre del centro
+          </li>
+          <li className={position ? 'done' : 'pending'}>
+            <span className="crear-check-icon" aria-hidden="true">
+              {position ? '✓' : '○'}
+            </span>
+            Ubicación en el mapa
+          </li>
+          <li className={hasSuministros ? 'done optional' : 'optional'}>
+            <span className="crear-check-icon" aria-hidden="true">
+              {hasSuministros ? '✓' : '·'}
+            </span>
+            Suministros <span className="checklist-tag">recomendado</span>
+          </li>
+        </ul>
 
-        <section className="card">
-          <h2>Imágenes del centro</h2>
-          <p className="panel-subtitle">
-            Sube fotos de tu centro. La primera imagen se usará como foto principal en el mapa.
-          </p>
-          <div className="centro-imagenes-upload">
+        <div className="crear-grid">
+          <section className="card crear-card">
+            <h2 className="crear-card-title">
+              <span className="crear-step">1</span>
+              Tu centro
+            </h2>
+            <label className="crear-field">
+              <span>
+                Nombre <span className="required-mark">*</span>
+              </span>
+              <input
+                ref={nombreInputRef}
+                value={nombre}
+                onChange={(e) => {
+                  setNombre(e.target.value)
+                  if (nombreError) setNombreError(null)
+                  if (error?.includes('nombre')) setError(null)
+                }}
+                placeholder="Ej: Centro comunitario Norte"
+                required
+                aria-required="true"
+                aria-invalid={nombreError ? true : undefined}
+              />
+              {nombreError && <p className="error">{nombreError}</p>}
+            </label>
+
+            <label className="crear-field">
+              <span>Tipo de establecimiento</span>
+              <select
+                value={tipoLugar}
+                onChange={(e) => setTipoLugar(e.target.value as TipoLugarId)}
+              >
+                {TIPOS_LUGAR.map((tipo) => (
+                  <option key={tipo.id} value={tipo.id}>
+                    {tipo.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </section>
+
+          <section className="card crear-card">
+            <h2 className="crear-card-title">
+              <span className="crear-step">2</span>
+              Fotos
+              <span className="badge-optional">Opcional</span>
+            </h2>
             <input
               ref={inputRef}
               type="file"
@@ -195,127 +256,139 @@ export function CrearPage() {
               hidden
               onChange={handleFileChange}
             />
-            <button
-              type="button"
-              className="btn-secondary"
-              disabled={submitting || pendingImages.length >= MAX_IMAGES}
-              onClick={() => inputRef.current?.click()}
+            <div
+              className={`crear-dropzone ${dragOver ? 'drag-over' : ''} ${pendingImages.length >= MAX_IMAGES ? 'disabled' : ''}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => pendingImages.length < MAX_IMAGES && inputRef.current?.click()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  inputRef.current?.click()
+                }
+              }}
+              onDragOver={(e) => {
+                e.preventDefault()
+                setDragOver(true)
+              }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
             >
-              {pendingImages.length >= MAX_IMAGES
-                ? `Límite de ${MAX_IMAGES} imágenes`
-                : 'Subir imágenes'}
-            </button>
-            <span className="centro-imagenes-hint">
-              JPG, PNG, WEBP o GIF · máx. 5 MB · {pendingImages.length}/{MAX_IMAGES}
-            </span>
-          </div>
-          {previewUrls.length > 0 && (
-            <ul className="centro-imagenes-grid">
-              {previewUrls.map((url, index) => (
-                <li key={url} className={`centro-imagen-item ${index === 0 ? 'principal' : ''}`}>
-                  <img src={url} alt="" />
-                  {index === 0 && <span className="centro-imagen-badge">Principal</span>}
-                  <div className="centro-imagen-actions">
-                    <button
-                      type="button"
-                      className="danger"
-                      disabled={submitting}
-                      onClick={() => removePendingImage(index)}
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+              <span className="crear-dropzone-icon" aria-hidden="true">
+                📷
+              </span>
+              <strong>Arrastra fotos aquí</strong>
+              <span>o haz clic para elegir</span>
+              <span className="crear-dropzone-meta">
+                JPG, PNG, WEBP o GIF · máx. 5 MB · {pendingImages.length}/{MAX_IMAGES}
+              </span>
+            </div>
+            {previewUrls.length > 0 && (
+              <ul className="centro-imagenes-grid crear-imagenes-grid">
+                {previewUrls.map((url, index) => (
+                  <li key={url} className={`centro-imagen-item ${index === 0 ? 'principal' : ''}`}>
+                    <img src={url} alt="" />
+                    {index === 0 && <span className="centro-imagen-badge">Principal</span>}
+                    <div className="centro-imagen-actions">
+                      <button
+                        type="button"
+                        className="danger"
+                        disabled={submitting}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removePendingImage(index)
+                        }}
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
 
-        <section className="card">
-          <h2>Tipo de lugar</h2>
-          <p className="panel-subtitle">
-            Indica qué tipo de establecimiento es tu centro para mostrarlo con el icono correcto en el mapa.
-          </p>
-          <label>
-            Categoría
-            <select
-              value={tipoLugar}
-              onChange={(e) => setTipoLugar(e.target.value as TipoLugarId)}
-            >
-              {TIPOS_LUGAR.map((tipo) => (
-                <option key={tipo.id} value={tipo.id}>
-                  {tipo.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </section>
-
-        <section className="card">
-          <h2>Ubicación</h2>
-          <p className="panel-subtitle">
-            Busca tu dirección o haz clic en el mapa para marcar la ubicación de tu centro.
-          </p>
-          <AddressSearch
-            value={direccion}
-            onChange={setDireccion}
-            onSelect={handleAddressSelect}
-          />
-          <div className="mt-1">
-            <MapPicker
-              position={position}
-              onPositionChange={setPosition}
-              flyTo={flyTo}
-              tipoLugar={tipoLugar}
-              height="360px"
+          <section ref={ubicacionSectionRef} className="card crear-card crear-grid-full">
+            <h2 className="crear-card-title">
+              <span className="crear-step">3</span>
+              Ubicación <span className="required-mark">*</span>
+            </h2>
+            <AddressSearch
+              value={direccion}
+              onChange={setDireccion}
+              onSelect={handleAddressSelect}
+              showHint={!position}
             />
-          </div>
-        </section>
+            {position ? (
+              <p className="crear-map-ok" role="status">
+                ✓ Ubicación marcada
+                {direccion.trim() && (
+                  <span className="crear-map-ok-detail"> — {direccion.trim()}</span>
+                )}
+              </p>
+            ) : (
+              <p className="crear-map-hint" role="status">
+                Busca tu dirección o haz clic en el mapa
+              </p>
+            )}
+            <div className={`crear-map-wrap ${position ? 'has-marker' : ''}`}>
+              <MapPicker
+                position={position}
+                onPositionChange={setPosition}
+                flyTo={flyTo}
+                tipoLugar={tipoLugar}
+                height="400px"
+              />
+            </div>
+          </section>
 
-        <section className="card">
-          <h2>Información de contacto</h2>
-          <p className="panel-subtitle">
-            Agrega teléfonos, correos y sitios web para que las personas puedan comunicarse contigo.
-          </p>
+          <section className="card crear-card crear-grid-full">
+            <details className="crear-contact-details">
+              <summary className="crear-card-title crear-details-summary">
+                <span className="crear-step">4</span>
+                Contacto
+                <span className="badge-optional">Opcional</span>
+              </summary>
+              <div className="contact-fields crear-contact-fields">
+                <ContactListField
+                  label="Teléfonos"
+                  placeholder="Ej: +58 412 1234567"
+                  values={telefonos}
+                  onChange={setTelefonos}
+                  type="tel"
+                />
+                <ContactListField
+                  label="Correos"
+                  placeholder="Ej: contacto@micentro.org"
+                  values={correosContacto}
+                  onChange={setCorreosContacto}
+                  type="email"
+                />
+                <ContactListField
+                  label="Sitios web"
+                  placeholder="Ej: www.micentro.org"
+                  values={sitiosWeb}
+                  onChange={setSitiosWeb}
+                  type="url"
+                />
+              </div>
+            </details>
+          </section>
 
-          <div className="contact-fields">
-            <ContactListField
-              label="Teléfonos"
-              placeholder="Ej: +58 412 1234567"
-              values={telefonos}
-              onChange={setTelefonos}
-              type="tel"
-            />
-            <ContactListField
-              label="Correos de contacto"
-              placeholder="Ej: contacto@micentro.org"
-              values={correosContacto}
-              onChange={setCorreosContacto}
-              type="email"
-            />
-            <ContactListField
-              label="Sitios web"
-              placeholder="Ej: www.micentro.org"
-              values={sitiosWeb}
-              onChange={setSitiosWeb}
-              type="url"
-            />
-          </div>
-        </section>
+          <section className="card crear-card crear-card-supplies">
+            <h2 className="crear-card-title">
+              <span className="crear-step">5</span>
+              ¿Qué necesitas?
+              <span className="badge-optional badge-recommended">Recomendado</span>
+            </h2>
+            <SuministrosPicker items={suministros} onChange={setSuministros} compact />
+          </section>
+        </div>
 
-        <section className="card">
-          <h2>Suministros necesarios</h2>
-          <p className="panel-subtitle">
-            Indica qué artículos necesita recibir tu centro. Aparecerán en el mapa para quienes quieran
-            ayudar.
-          </p>
-          <SuministrosPicker items={suministros} onChange={setSuministros} />
-        </section>
-
-        <div className="save-actions">
+        <div ref={submitBarRef} className="crear-submit-bar save-actions">
           {error && <p className="error">{error}</p>}
-          <button type="submit" className="btn-save" disabled={submitting || !isNombreValid}>
-            {submitting ? 'Creando...' : 'Crear centro de acopio'}
+          <button type="submit" className="btn-save crear-submit-btn" disabled={submitting || !canSubmit}>
+            {submitting ? 'Publicando...' : 'Publicar en el mapa'}
           </button>
         </div>
       </form>

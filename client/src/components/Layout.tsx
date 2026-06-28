@@ -15,7 +15,11 @@ export function Layout() {
     >
       <nav className="navbar">
         <NavLink to="/" className="navbar-brand" onClick={() => setMenuOpen(false)}>
-          Help Acopio
+          <img src="/logo.png" alt="" className="navbar-logo" width={40} height={40} />
+          <span className="navbar-brand-text">
+            <strong>Red de Acopio</strong>
+            <small>Venezuela</small>
+          </span>
         </NavLink>
         <button
           type="button"
@@ -35,7 +39,7 @@ export function Layout() {
             Mapa
           </NavLink>
           <NavLink to="/crear" className={({ isActive }) => (isActive ? 'active' : '')}>
-            Crear centro de acopio
+            Registrar centro
           </NavLink>
         </div>
       </nav>

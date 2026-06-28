@@ -1,12 +1,16 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #2563eb;
+  --text: #64748b;
+  --text-h: #0f172a;
+  --bg: #f8fafc;
+  --border: #e2e8f0;
+  --code-bg: #ffffff;
+  --card-bg: #ffffff;
+  --accent: #0ea5e9;
+  --brand: #38bdf8;
+  --brand-dark: #0284c7;
+  --brand-glow: rgba(56, 189, 248, 0.15);
 
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Segoe UI', system-ui, Roboto, sans-serif;
   line-height: 1.5;
   color: var(--text);
   background: var(--bg);
@@ -17,12 +21,16 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #111827;
-    --border: #374151;
-    --code-bg: #1f2937;
-    --accent: #3b82f6;
+    --text: #94a3b8;
+    --text-h: #f1f5f9;
+    --bg: #0b1120;
+    --border: #1e293b;
+    --code-bg: #111827;
+    --card-bg: #131c31;
+    --accent: #38bdf8;
+    --brand: #38bdf8;
+    --brand-dark: #0ea5e9;
+    --brand-glow: rgba(56, 189, 248, 0.12);
   }
 }
 
