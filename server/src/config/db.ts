@@ -12,7 +12,7 @@ async function ensureCentroIndexes(): Promise<void> {
   const indexes = await collection.indexes()
   const emailIndex = indexes.find((index) => index.key?.email === 1)
 
-  if (emailIndex && !emailIndex.sparse) {
+  if (emailIndex?.name && !emailIndex.sparse) {
     await collection.dropIndex(emailIndex.name)
     console.log('Índice email recreado como sparse')
   }
