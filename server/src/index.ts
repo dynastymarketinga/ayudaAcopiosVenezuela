@@ -30,6 +30,20 @@ async function main() {
   app.use('/api/geocode', geocodeRouter)
   app.use('/api/hospitals', hospitalsRouter)
 
+  app.use(
+    (err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+      console.error(err)
+
+      if (err && typeof err === 'object' && 'code' in err && err.code === 11000) {
+        res.status(409).json({ message: 'Ya existe un registro con esos datos' })
+        return
+      }
+
+      const message = err instanceof Error ? err.message : 'Error interno del servidor'
+      res.status(500).json({ message })
+    },
+  )
+
   app.listen(PORT, () => {
     console.log(`Servidor en http://localhost:${PORT}`)
   })

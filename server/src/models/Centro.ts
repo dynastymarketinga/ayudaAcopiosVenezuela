@@ -35,7 +35,7 @@ const suministroNecesarioSchema = new Schema<SuministroNecesario>(
 
 const centroSchema = new Schema<ICentro>(
   {
-    email: { type: String, unique: true, sparse: true, trim: true, lowercase: true },
+    email: { type: String, trim: true, lowercase: true },
     password: { type: String },
     nombre: { type: String, required: true, trim: true },
     tipoLugar: { type: String, default: DEFAULT_TIPO_LUGAR },
@@ -51,5 +51,13 @@ const centroSchema = new Schema<ICentro>(
   },
   { timestamps: true },
 )
+
+centroSchema.index({ email: 1 }, { unique: true, sparse: true })
+
+centroSchema.pre('save', function () {
+  if (this.email == null || this.email === '') {
+    this.email = undefined
+  }
+})
 
 export const Centro = model<ICentro>('Centro', centroSchema)
