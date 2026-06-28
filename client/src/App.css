@@ -315,6 +315,10 @@
   display: none;
 }
 
+.mapa-sidebar-nav {
+  display: none;
+}
+
 .mapa-menu-toggle {
   align-items: center;
   justify-content: center;
@@ -711,6 +715,12 @@
 .centro-badge {
   font-size: 0.8rem !important;
   color: var(--accent) !important;
+}
+
+.centro-created-at {
+  font-size: 0.78rem;
+  color: var(--text);
+  opacity: 0.85;
 }
 
 .centro-detail {
@@ -1502,6 +1512,10 @@
 }
 
 @media (max-width: 768px) {
+  .layout-mapa .navbar-toggle {
+    display: none;
+  }
+
   .navbar-toggle {
     display: flex;
   }
@@ -1556,14 +1570,14 @@
     position: absolute;
     top: 12px;
     right: 12px;
-    z-index: 800;
+    z-index: 1050;
   }
 
   .mapa-sidebar-backdrop {
     display: block;
     position: fixed;
     inset: var(--navbar-height) 0 0 0;
-    z-index: 850;
+    z-index: 1100;
     border: none;
     background: rgba(0, 0, 0, 0.4);
     cursor: pointer;
@@ -1576,7 +1590,7 @@
     bottom: 0;
     width: min(360px, 88vw);
     max-height: none;
-    z-index: 900;
+    z-index: 1200;
     transform: translateX(-100%);
     transition: transform 0.25s ease, width 0.25s ease;
     border-right: 1px solid var(--border);
@@ -1604,5 +1618,32 @@
 
   .mapa-subtitle {
     margin-top: 0;
+  }
+
+  .mapa-sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .mapa-sidebar-nav a {
+    text-decoration: none;
+    color: var(--text);
+    padding: 0.65rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+  }
+
+  .mapa-sidebar-nav a:hover {
+    background: var(--code-bg);
+    color: var(--text-h);
+  }
+
+  .mapa-sidebar-nav a.active {
+    background: var(--accent);
+    color: white;
   }
 }

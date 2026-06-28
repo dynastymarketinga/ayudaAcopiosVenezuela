@@ -10,7 +10,9 @@ export function Layout() {
   }, [location.pathname])
 
   return (
-    <div className={`layout ${menuOpen ? 'nav-open' : ''}`}>
+    <div
+      className={`layout ${menuOpen ? 'nav-open' : ''} ${location.pathname === '/mapa' ? 'layout-mapa' : ''}`}
+    >
       <nav className="navbar">
         <NavLink to="/" className="navbar-brand" onClick={() => setMenuOpen(false)}>
           Help Acopio

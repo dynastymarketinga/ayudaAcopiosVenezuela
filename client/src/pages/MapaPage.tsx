@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
+import { NavLink } from 'react-router-dom'
 import { fetchCentros, type Centro } from '../api/centros'
 import { resolveAssetUrl } from '../config/api'
 import { fetchHospitals, getCachedHospitals, type Hospital } from '../api/hospitals'
 import { CentrosMap } from '../components/CentrosMap'
+import { RelativeCreatedAt } from '../components/RelativeCreatedAt'
 import { SuministrosDisplay } from '../components/SuministrosDisplay'
 import { getTipoLugarLabel, TIPOS_LUGAR, type TipoLugarId } from '../constants/placeTypes'
 import { countArticulos } from '../constants/supplies'
@@ -42,6 +44,7 @@ function CentroCard({ centro, expanded, onToggle, cardRef }: CentroCardProps) {
         <div className="centro-card-summary">
           <strong>{centro.nombre}</strong>
           <span className="tipo-badge-inline">{getTipoLugarLabel(centro.tipoLugar)}</span>
+          <RelativeCreatedAt date={centro.createdAt} />
           {!expanded && centro.direccion && (
             <span className="centro-card-address">{centro.direccion}</span>
           )}
@@ -431,6 +434,15 @@ export function MapaPage() {
             })}
           </ul>
         )}
+
+        <nav className="mapa-sidebar-nav">
+          <NavLink to="/mapa" className={({ isActive }) => (isActive ? 'active' : '')} onClick={() => setSidebarOpen(false)}>
+            Mapa
+          </NavLink>
+          <NavLink to="/panel" className={({ isActive }) => (isActive ? 'active' : '')} onClick={() => setSidebarOpen(false)}>
+            Crear centro de acopio
+          </NavLink>
+        </nav>
       </aside>
 
       <div className="mapa-map">
