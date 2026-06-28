@@ -10,6 +10,7 @@ export interface Centro {
   lat?: number
   lng?: number
   direccion?: string
+  estado?: string
   telefonos: string[]
   correosContacto: string[]
   sitiosWeb: string[]

@@ -1,44 +1,89 @@
-import { VENEZUELA_ESTADOS, type VenezuelaEstado } from '../constants/venezuelaEstados'
+import {
+  VENEZUELA_ESTADOS,
+  VENEZUELA_ESTADOS_GEO,
+} from '../constants/venezuelaEstados'
+
+type LatLng = [lat: number, lng: number]
 
 function normalizeText(value: string): string {
   return value
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
+    .trim()
 }
 
-function bboxArea(bbox: VenezuelaEstado['bbox']): number {
-  const [minLng, minLat, maxLng, maxLat] = bbox
-  return (maxLng - minLng) * (maxLat - minLat)
+const ESTADO_ALIASES = new Map<string, string>([
+  ['caracas', 'distrito_capital'],
+  ['distrito capital', 'distrito_capital'],
+  ['vargas', 'la_guaira'],
+  ['la guaira', 'la_guaira'],
+  ['dependencias federales', 'dependencias_federales'],
+])
+
+const ESTADOS_BY_NAME = new Map(
+  VENEZUELA_ESTADOS.map((estado) => [normalizeText(estado.name), estado.id]),
+)
+
+function matchEstadoName(value: string): string | null {
+  const normalized = normalizeText(value.replace(/^estado\s+/i, ''))
+  if (!normalized) return null
+
+  const alias = ESTADO_ALIASES.get(normalized)
+  if (alias) return alias
+
+  return ESTADOS_BY_NAME.get(normalized) ?? null
 }
 
-function isInsideBbox(lat: number, lng: number, bbox: VenezuelaEstado['bbox']): boolean {
-  const [minLng, minLat, maxLng, maxLat] = bbox
-  return lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng
-}
+function pointInRing(lat: number, lng: number, ring: LatLng[]): boolean {
+  let inside = false
 
-const ESTADOS_BY_NAME = VENEZUELA_ESTADOS.flatMap((estado) => {
-  const aliases = [estado.name]
-  if (estado.id === 'distrito_capital') aliases.push('Caracas')
-  if (estado.id === 'la_guaira') aliases.push('Vargas')
-  return aliases.map((alias) => [normalizeText(alias), estado.id] as const)
-}).sort((a, b) => b[0].length - a[0].length)
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [yi, xi] = ring[i]
+    const [yj, xj] = ring[j]
+    const intersects = yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi
+    if (intersects) inside = !inside
+  }
+
+  return inside
+}
 
 export function resolveEstadoFromCoords(lat?: number, lng?: number): string | null {
   if (typeof lat !== 'number' || typeof lng !== 'number') return null
 
-  const matches = VENEZUELA_ESTADOS.filter((estado) => isInsideBbox(lat, lng, estado.bbox))
-  if (matches.length === 0) return null
+  for (const estado of VENEZUELA_ESTADOS_GEO) {
+    if (estado.rings.some((ring) => pointInRing(lat, lng, ring as LatLng[]))) {
+      return estado.id
+    }
+  }
 
-  matches.sort((a, b) => bboxArea(a.bbox) - bboxArea(b.bbox))
-  return matches[0].id
+  return null
 }
 
 export function resolveEstadoFromDireccion(direccion?: string): string | null {
   if (!direccion) return null
 
+  const parts = direccion
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean)
+
+  for (let index = parts.length - 1; index >= 0; index--) {
+    const part = parts[index]
+    const normalizedPart = normalizeText(part)
+    if (normalizedPart === 'venezuela' || normalizedPart === 've') continue
+
+    const match = matchEstadoName(part)
+    if (match) return match
+  }
+
   const normalized = normalizeText(direccion)
-  for (const [alias, estadoId] of ESTADOS_BY_NAME) {
+  const orderedNames = [...VENEZUELA_ESTADOS].sort((a, b) => b.name.length - a.name.length)
+  for (const estado of orderedNames) {
+    if (normalized.includes(normalizeText(estado.name))) return estado.id
+  }
+
+  for (const [alias, estadoId] of ESTADO_ALIASES) {
     if (normalized.includes(alias)) return estadoId
   }
 
@@ -52,11 +97,11 @@ export function resolveEstado(item: {
   estado?: string
 }): string | null {
   if (item.estado) {
-    const normalized = normalizeText(item.estado)
-    const match = VENEZUELA_ESTADOS.find(
-      (estado) => estado.id === item.estado || normalizeText(estado.name) === normalized,
-    )
-    if (match) return match.id
+    const match = matchEstadoName(item.estado)
+    if (match) return match
+    if (ESTADOS_BY_NAME.has(normalizeText(item.estado)) || VENEZUELA_ESTADOS.some((e) => e.id === item.estado)) {
+      return item.estado
+    }
   }
 
   const fromDireccion = resolveEstadoFromDireccion(item.direccion)

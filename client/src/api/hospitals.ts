@@ -6,11 +6,12 @@ export interface Hospital {
   lat: number
   lng: number
   direccion?: string
+  estado?: string
   telefono?: string
   fuente: 'openstreetmap'
 }
 
-const CACHE_KEY = 'helpAcopio:hospitals:v1'
+const CACHE_KEY = 'helpAcopio:hospitals:v2'
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 interface HospitalCache {

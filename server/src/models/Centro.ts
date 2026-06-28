@@ -15,6 +15,7 @@ export interface ICentro extends Document {
   lat?: number
   lng?: number
   direccion?: string
+  estado?: string
   telefonos: string[]
   correosContacto: string[]
   sitiosWeb: string[]
@@ -42,6 +43,7 @@ const centroSchema = new Schema<ICentro>(
     lat: { type: Number },
     lng: { type: Number },
     direccion: { type: String, trim: true },
+    estado: { type: String, trim: true },
     telefonos: { type: [String], default: [] },
     correosContacto: { type: [String], default: [] },
     sitiosWeb: { type: [String], default: [] },

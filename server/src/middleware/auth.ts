@@ -5,6 +5,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production'
 
 export interface AuthRequest extends Request {
   centroId?: string
+  admin?: boolean
 }
 
 export function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
@@ -30,6 +31,33 @@ export function signToken(centroId: string): string {
   return jwt.sign({ id: centroId }, JWT_SECRET, { expiresIn: '7d' })
 }
 
+export function signAdminToken(): string {
+  return jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '7d' })
+}
+
+export function adminAuthMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
+  const header = req.headers.authorization
+
+  if (!header?.startsWith('Bearer ')) {
+    res.status(401).json({ message: 'No autorizado' })
+    return
+  }
+
+  const token = header.slice(7)
+
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as { role?: string }
+    if (payload.role !== 'admin') {
+      res.status(401).json({ message: 'No autorizado' })
+      return
+    }
+    req.admin = true
+    next()
+  } catch {
+    res.status(401).json({ message: 'Token inválido o expirado' })
+  }
+}
+
 import type { TipoLugarId } from '../constants/placeTypes.js'
 import { DEFAULT_TIPO_LUGAR } from '../constants/placeTypes.js'
 import { normalizeSuministrosNecesarios } from '../utils/suministros.js'
@@ -42,6 +70,7 @@ export function toPublicCentro(centro: {
   lat?: number
   lng?: number
   direccion?: string
+  estado?: string
   telefonos?: string[]
   correosContacto?: string[]
   sitiosWeb?: string[]
@@ -59,6 +88,7 @@ export function toPublicCentro(centro: {
     lat: centro.lat,
     lng: centro.lng,
     direccion: centro.direccion,
+    estado: centro.estado,
     telefonos: centro.telefonos ?? [],
     correosContacto: centro.correosContacto ?? [],
     sitiosWeb: centro.sitiosWeb ?? [],

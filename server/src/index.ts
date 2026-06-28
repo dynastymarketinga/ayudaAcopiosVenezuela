@@ -1,8 +1,14 @@
-import 'dotenv/config'
+import path from 'path'
+import { fileURLToPath } from 'url'
+import dotenv from 'dotenv'
 import cors from 'cors'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+dotenv.config({ path: path.join(__dirname, '../.env') })
 import express from 'express'
 import { connectDB } from './config/db.js'
 import { UPLOADS_ROOT } from './config/upload.js'
+import { adminRouter } from './routes/admin.js'
 import { authRouter } from './routes/auth.js'
 import { centrosRouter } from './routes/centros.js'
 import { geocodeRouter } from './routes/geocode.js'
@@ -25,6 +31,7 @@ async function main() {
     res.json({ status: 'ok', message: 'API funcionando' })
   })
 
+  app.use('/api/admin', adminRouter)
   app.use('/api/auth', authRouter)
   app.use('/api/centros', centrosRouter)
   app.use('/api/geocode', geocodeRouter)

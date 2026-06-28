@@ -20,6 +20,7 @@ import {
   validateWebsites,
 } from '../utils/contact.js'
 import { parseSuministrosNecesarios } from '../utils/suministros.js'
+import { resolveEstadoFromDireccion } from '../utils/estado.js'
 
 export const centrosRouter = Router()
 
@@ -171,6 +172,7 @@ centrosRouter.post('/', async (req, res) => {
     lat,
     lng,
     direccion: typeof direccion === 'string' ? direccion.trim() : '',
+    estado: resolveEstadoFromDireccion(typeof direccion === 'string' ? direccion : undefined),
     tipoLugar: tipoLugar ?? undefined,
     telefonos: parsedPhones,
     correosContacto: parsedEmails,
@@ -231,6 +233,7 @@ centrosRouter.put('/me', authMiddleware, async (req: AuthRequest, res) => {
 
   if (direccion !== undefined) {
     centro.direccion = typeof direccion === 'string' ? direccion.trim() : ''
+    centro.estado = resolveEstadoFromDireccion(centro.direccion)
   }
 
   if (tipoLugar !== undefined) {

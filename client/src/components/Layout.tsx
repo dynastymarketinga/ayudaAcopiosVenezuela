@@ -34,8 +34,11 @@ export function Layout() {
           <NavLink to="/mapa" className={({ isActive }) => (isActive ? 'active' : '')}>
             Mapa
           </NavLink>
-          <NavLink to="/panel" className={({ isActive }) => (isActive ? 'active' : '')}>
+          <NavLink to="/crear" className={({ isActive }) => (isActive ? 'active' : '')}>
             Crear centro de acopio
+          </NavLink>
+          <NavLink to="/panel" className={({ isActive }) => (isActive ? 'active' : '')}>
+            Panel
           </NavLink>
         </div>
       </nav>

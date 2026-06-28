@@ -2,6 +2,7 @@ import fs from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { Router } from 'express'
+import { resolveEstadoFromDireccion } from '../utils/estado.js'
 
 export const hospitalsRouter = Router()
 
@@ -11,6 +12,7 @@ export interface HospitalPublic {
   lat: number
   lng: number
   direccion?: string
+  estado?: string
   telefono?: string
   fuente: 'openstreetmap'
 }
@@ -74,12 +76,15 @@ function normalizeHospital(element: OverpassElement): HospitalPublic | null {
   const tags = element.tags ?? {}
   const nombre = tags.name || tags['name:es'] || tags['official_name'] || 'Hospital sin nombre'
 
+  const direccion = buildDireccion(tags)
+
   return {
     id: `osm-${element.type}-${element.id}`,
     nombre,
     lat,
     lng,
-    direccion: buildDireccion(tags),
+    direccion,
+    estado: resolveEstadoFromDireccion(tags['addr:state'] || direccion),
     telefono: tags.phone || tags['contact:phone'],
     fuente: 'openstreetmap',
   }

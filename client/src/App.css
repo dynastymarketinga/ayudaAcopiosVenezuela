@@ -1668,3 +1668,87 @@
     color: white;
   }
 }
+
+.panel-admin-login {
+  max-width: 400px;
+  margin: 2rem auto;
+  padding: 1.5rem;
+}
+
+.panel-admin-login h1 {
+  margin: 0 0 1.5rem;
+  font-size: 1.25rem;
+}
+
+.panel-admin-login form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.panel-admin-login label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.panel-admin-login input {
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.panel-admin-login button {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+.panel-admin {
+  max-width: 720px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.panel-admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.panel-admin-header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.panel-centros-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.panel-centro-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.panel-centro-item p {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text-muted, #666);
+}
+
+.panel-centro-item button {
+  flex-shrink: 0;
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+}
