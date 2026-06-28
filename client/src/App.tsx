@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { AuthProvider } from './context/AuthContext'
 import { MapaPage } from './pages/MapaPage'
@@ -12,8 +12,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route element={<Layout />}>
-            <Route index element={<Navigate to="/mapa" replace />} />
-            <Route path="/" element={<MapaPage />} />
+            <Route index element={<MapaPage />} />
             <Route path="mapa" element={<MapaPage />} />
             <Route path="crear" element={<CrearPage />} />
             <Route path="panel" element={<PanelPage />} />

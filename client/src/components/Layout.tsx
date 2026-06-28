@@ -11,7 +11,7 @@ export function Layout() {
 
   return (
     <div
-      className={`layout ${menuOpen ? 'nav-open' : ''} ${location.pathname === '/mapa' ? 'layout-mapa' : ''}`}
+      className={`layout ${menuOpen ? 'nav-open' : ''} ${location.pathname === '/' || location.pathname === '/mapa' ? 'layout-mapa' : ''}`}
     >
       <nav className="navbar">
         <NavLink to="/" className="navbar-brand" onClick={() => setMenuOpen(false)}>
@@ -35,7 +35,12 @@ export function Layout() {
           </span>
         </button>
         <div className="navbar-links">
-          <NavLink to="/mapa" className={({ isActive }) => (isActive ? 'active' : '')}>
+          <NavLink
+            to="/mapa"
+            className={({ isActive }) =>
+              isActive || location.pathname === '/' ? 'active' : ''
+            }
+          >
             Mapa
           </NavLink>
           <NavLink to="/crear" className={({ isActive }) => (isActive ? 'active' : '')}>
