@@ -4,6 +4,9 @@
   "installCommand": "npm install --prefix client",
   "buildCommand": "npm run build --prefix client",
   "outputDirectory": "client/dist",
+  "env": {
+    "VITE_API_URL": "https://ayudaacopiosvenezuela.onrender.com"
+  },
   "rewrites": [
     {
       "source": "/(.*)",
