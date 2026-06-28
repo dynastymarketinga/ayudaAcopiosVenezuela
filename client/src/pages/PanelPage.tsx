@@ -1,120 +1,19 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import type { GeocodeResult } from '../api/geocode'
-import { updateCentro } from '../api/centros'
+import { createCentro, uploadCentroImagenesPublic } from '../api/centros'
 import { AddressSearch } from '../components/AddressSearch'
 import { cleanContactList, ContactListField } from '../components/ContactListField'
 import { MapPicker } from '../components/MapPicker'
-import { CentroImagenesSection } from '../components/CentroImagenesSection'
 import { SuministrosPicker } from '../components/SuministrosPicker'
-import { useAuth } from '../context/AuthContext'
 import { DEFAULT_TIPO_LUGAR, TIPOS_LUGAR, type TipoLugarId } from '../constants/placeTypes'
-import {
-  normalizeSuministrosNecesarios,
-  type SuministroNecesario,
-} from '../constants/supplies'
+import type { SuministroNecesario } from '../constants/supplies'
 
-type AuthMode = 'login' | 'register'
+const MAX_IMAGES = 10
+const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,image/gif'
 
-function AuthForm() {
-  const { login, register } = useAuth()
-  const [mode, setMode] = useState<AuthMode>('login')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [nombre, setNombre] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault()
-    setError(null)
-    setSubmitting(true)
-
-    try {
-      if (mode === 'login') {
-        await login(email, password)
-      } else {
-        await register(email, password, nombre)
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al autenticar')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <div className="panel-auth">
-      <div className="auth-tabs">
-        <button
-          type="button"
-          className={mode === 'login' ? 'active' : ''}
-          onClick={() => setMode('login')}
-        >
-          Iniciar sesión
-        </button>
-        <button
-          type="button"
-          className={mode === 'register' ? 'active' : ''}
-          onClick={() => setMode('register')}
-        >
-          Registrarse
-        </button>
-      </div>
-
-      <div className="card">
-        <h1>{mode === 'login' ? 'Acceso para centros' : 'Registrar centro de acopio'}</h1>
-        <p className="panel-subtitle">
-          {mode === 'login'
-            ? 'Ingresa con tu correo para gestionar tu centro.'
-            : 'Crea una cuenta para publicar qué suministros necesitas.'}
-        </p>
-
-        {error && <p className="error">{error}</p>}
-
-        <form className="form" onSubmit={handleSubmit}>
-          {mode === 'register' && (
-            <label>
-              Nombre del centro
-              <input
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                placeholder="Ej: Centro comunitario Norte"
-                required
-              />
-            </label>
-          )}
-          <label>
-            Correo electrónico
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="centro@ejemplo.com"
-              required
-            />
-          </label>
-          <label>
-            Contraseña
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
-              minLength={6}
-              required
-            />
-          </label>
-          <button type="submit" disabled={submitting}>
-            {submitting ? 'Procesando...' : mode === 'login' ? 'Entrar' : 'Crear cuenta'}
-          </button>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-function CentroDashboard() {
-  const { centro, logout, refreshCentro } = useAuth()
+function CrearCentroForm() {
+  const inputRef = useRef<HTMLInputElement>(null)
   const [nombre, setNombre] = useState('')
   const [position, setPosition] = useState<[number, number] | null>(null)
   const [flyTo, setFlyTo] = useState<[number, number] | null>(null)
@@ -124,29 +23,19 @@ function CentroDashboard() {
   const [sitiosWeb, setSitiosWeb] = useState<string[]>([''])
   const [tipoLugar, setTipoLugar] = useState<TipoLugarId>(DEFAULT_TIPO_LUGAR)
   const [suministros, setSuministros] = useState<SuministroNecesario[]>([])
-  const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
+  const [pendingImages, setPendingImages] = useState<File[]>([])
+  const [previewUrls, setPreviewUrls] = useState<string[]>([])
+  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [created, setCreated] = useState(false)
 
   useEffect(() => {
-    if (!centro) return
-    if (typeof centro.lat === 'number' && typeof centro.lng === 'number') {
-      setPosition([centro.lat, centro.lng])
+    const urls = pendingImages.map((file) => URL.createObjectURL(file))
+    setPreviewUrls(urls)
+    return () => {
+      for (const url of urls) URL.revokeObjectURL(url)
     }
-    setDireccion(centro.direccion ?? '')
-    setNombre(centro.nombre ?? '')
-    setTelefonos(centro.telefonos.length > 0 ? centro.telefonos : [''])
-    setCorreosContacto(centro.correosContacto.length > 0 ? centro.correosContacto : [''])
-    setSitiosWeb(centro.sitiosWeb.length > 0 ? centro.sitiosWeb : [''])
-    setTipoLugar(centro.tipoLugar ?? DEFAULT_TIPO_LUGAR)
-    setSuministros(normalizeSuministrosNecesarios(centro.suministrosNecesarios))
-  }, [centro])
-
-  useEffect(() => {
-    if (!message) return
-    const timer = window.setTimeout(() => setMessage(null), 4000)
-    return () => window.clearTimeout(timer)
-  }, [message])
+  }, [pendingImages])
 
   function handleAddressSelect(result: GeocodeResult) {
     const coords: [number, number] = [result.lat, result.lng]
@@ -155,17 +44,27 @@ function CentroDashboard() {
     setDireccion(result.displayName)
   }
 
-  async function persistSuministros(next: SuministroNecesario[]) {
-    const updated = await updateCentro({
-      suministrosNecesarios: next.map((item) => ({
-        categoria: item.categoria,
-        detalle: item.detalle.trim(),
-      })),
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? [])
+    event.target.value = ''
+    if (files.length === 0) return
+
+    setPendingImages((current) => {
+      const combined = [...current, ...files]
+      if (combined.length > MAX_IMAGES) {
+        setError(`Máximo ${MAX_IMAGES} imágenes`)
+        return current
+      }
+      setError(null)
+      return combined
     })
-    setSuministros(normalizeSuministrosNecesarios(updated.suministrosNecesarios))
   }
 
-  async function handleSave(event: FormEvent) {
+  function removePendingImage(index: number) {
+    setPendingImages((current) => current.filter((_, i) => i !== index))
+  }
+
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     if (!nombre.trim()) {
       setError('Ingresa el nombre del centro')
@@ -176,20 +75,19 @@ function CentroDashboard() {
       return
     }
 
-    const incomplete = suministros.filter((item) => !item.detalle.trim())
+    const incomplete = suministros.filter((item) => item.articulos.length === 0)
     if (incomplete.length > 0) {
       setError(
-        `Completa el detalle de: ${incomplete.map((item) => item.categoria).join(', ')}`,
+        `Agrega artículos en: ${incomplete.map((item) => item.categoria).join(', ')}`,
       )
       return
     }
 
-    setSaving(true)
+    setSubmitting(true)
     setError(null)
-    setMessage(null)
 
     try {
-      await updateCentro({
+      const centro = await createCentro({
         nombre: nombre.trim(),
         lat: position[0],
         lng: position[1],
@@ -200,31 +98,51 @@ function CentroDashboard() {
         tipoLugar,
         suministrosNecesarios: suministros.map((item) => ({
           categoria: item.categoria,
-          detalle: item.detalle.trim(),
+          articulos: item.articulos.map((articulo) => articulo.trim()).filter(Boolean),
         })),
       })
-      await refreshCentro()
-      setMessage('Cambios guardados correctamente')
+
+      if (pendingImages.length > 0) {
+        await uploadCentroImagenesPublic(centro._id, pendingImages)
+      }
+
+      setCreated(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo guardar')
+      setError(err instanceof Error ? err.message : 'No se pudo crear el centro')
     } finally {
-      setSaving(false)
+      setSubmitting(false)
     }
+  }
+
+  if (created) {
+    return (
+      <div className="panel-dashboard">
+        <section className="card">
+          <h1>Centro creado</h1>
+          <p className="panel-subtitle">
+            Tu centro de acopio ya está publicado en el mapa. Las personas podrán ver qué
+            suministros necesitas.
+          </p>
+          <Link to="/mapa" className="btn-save">
+            Ver en el mapa
+          </Link>
+        </section>
+      </div>
+    )
   }
 
   return (
     <div className="panel-dashboard">
       <header className="panel-header">
         <div>
-          <h1>{centro?.nombre}</h1>
-          <p className="panel-subtitle">{centro?.email}</p>
+          <h1>Crear centro de acopio</h1>
+          <p className="panel-subtitle">
+            Completa la información de tu centro para publicarlo en el mapa.
+          </p>
         </div>
-        <button type="button" className="btn-secondary" onClick={logout}>
-          Cerrar sesión
-        </button>
       </header>
 
-      <form className="dashboard-form" onSubmit={handleSave}>
+      <form className="dashboard-form" onSubmit={handleSubmit}>
         <section className="card">
           <h2>Nombre del centro</h2>
           <p className="panel-subtitle">
@@ -241,7 +159,55 @@ function CentroDashboard() {
           </label>
         </section>
 
-        {centro && <CentroImagenesSection centro={centro} onUpdated={refreshCentro} />}
+        <section className="card">
+          <h2>Imágenes del centro</h2>
+          <p className="panel-subtitle">
+            Sube fotos de tu centro. La primera imagen se usará como foto principal en el mapa.
+          </p>
+          <div className="centro-imagenes-upload">
+            <input
+              ref={inputRef}
+              type="file"
+              accept={ACCEPTED_TYPES}
+              multiple
+              hidden
+              onChange={handleFileChange}
+            />
+            <button
+              type="button"
+              className="btn-secondary"
+              disabled={submitting || pendingImages.length >= MAX_IMAGES}
+              onClick={() => inputRef.current?.click()}
+            >
+              {pendingImages.length >= MAX_IMAGES
+                ? `Límite de ${MAX_IMAGES} imágenes`
+                : 'Subir imágenes'}
+            </button>
+            <span className="centro-imagenes-hint">
+              JPG, PNG, WEBP o GIF · máx. 5 MB · {pendingImages.length}/{MAX_IMAGES}
+            </span>
+          </div>
+          {previewUrls.length > 0 && (
+            <ul className="centro-imagenes-grid">
+              {previewUrls.map((url, index) => (
+                <li key={url} className={`centro-imagen-item ${index === 0 ? 'principal' : ''}`}>
+                  <img src={url} alt="" />
+                  {index === 0 && <span className="centro-imagen-badge">Principal</span>}
+                  <div className="centro-imagen-actions">
+                    <button
+                      type="button"
+                      className="danger"
+                      disabled={submitting}
+                      onClick={() => removePendingImage(index)}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
         <section className="card">
           <h2>Tipo de lugar</h2>
@@ -321,18 +287,13 @@ function CentroDashboard() {
             Indica qué artículos necesita recibir tu centro. Aparecerán en el mapa para quienes quieran
             ayudar.
           </p>
-          <SuministrosPicker
-            items={suministros}
-            onChange={setSuministros}
-            onPersist={persistSuministros}
-          />
+          <SuministrosPicker items={suministros} onChange={setSuministros} />
         </section>
 
         <div className="save-actions">
           {error && <p className="error">{error}</p>}
-          {message && <p className="success" role="status">{message}</p>}
-          <button type="submit" className="btn-save" disabled={saving}>
-            {saving ? 'Guardando...' : 'Guardar cambios'}
+          <button type="submit" className="btn-save" disabled={submitting}>
+            {submitting ? 'Creando...' : 'Crear centro de acopio'}
           </button>
         </div>
       </form>
@@ -341,19 +302,9 @@ function CentroDashboard() {
 }
 
 export function PanelPage() {
-  const { centro, loading } = useAuth()
-
-  if (loading) {
-    return (
-      <div className="panel-page">
-        <p>Cargando...</p>
-      </div>
-    )
-  }
-
   return (
     <div className="panel-page">
-      {centro ? <CentroDashboard /> : <AuthForm />}
+      <CrearCentroForm />
     </div>
   )
 }

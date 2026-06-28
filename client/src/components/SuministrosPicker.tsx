@@ -3,10 +3,12 @@ import { createPortal } from 'react-dom'
 import {
   SUMINISTROS,
   SUMINISTRO_ICONS,
-  SUMINISTRO_PLACEHOLDERS,
+  SUMINISTRO_ITEM_PLACEHOLDERS,
+  countArticulos,
   type Suministro,
   type SuministroNecesario,
 } from '../constants/supplies'
+import { ContactListField, cleanContactList } from './ContactListField'
 
 interface SuministrosPickerProps {
   items: SuministroNecesario[]
@@ -22,14 +24,14 @@ function sortSuministros(items: SuministroNecesario[]) {
 
 export function SuministrosPicker({ items, onChange, onPersist }: SuministrosPickerProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [activeCategory, setActiveCategory] = useState<Suministro | null>(null)
-  const [draftDetalle, setDraftDetalle] = useState('')
+  const [draftArticulos, setDraftArticulos] = useState<string[]>([''])
   const [dialogError, setDialogError] = useState<string | null>(null)
   const [persisting, setPersisting] = useState(false)
 
   const selectedCategories = new Set(items.map((item) => item.categoria))
-  const count = items.length
+  const categoryCount = items.length
+  const articulosCount = countArticulos(items)
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -37,7 +39,6 @@ export function SuministrosPicker({ items, onChange, onPersist }: SuministrosPic
 
     if (activeCategory) {
       if (!dialog.open) dialog.showModal()
-      textareaRef.current?.focus()
     } else if (dialog.open) {
       dialog.close()
     }
@@ -58,28 +59,28 @@ export function SuministrosPicker({ items, onChange, onPersist }: SuministrosPic
   function openDialog(categoria: Suministro) {
     const existing = items.find((item) => item.categoria === categoria)
     setActiveCategory(categoria)
-    setDraftDetalle(existing?.detalle ?? '')
+    setDraftArticulos(existing?.articulos.length ? existing.articulos : [''])
     setDialogError(null)
   }
 
   function closeDialog() {
     setActiveCategory(null)
-    setDraftDetalle('')
+    setDraftArticulos([''])
     setDialogError(null)
   }
 
   async function handleConfirm() {
     if (!activeCategory) return
 
-    const detalle = draftDetalle.trim()
-    if (!detalle) {
-      setDialogError('Describe qué artículos necesitas de esta categoría')
+    const articulos = cleanContactList(draftArticulos)
+    if (articulos.length === 0) {
+      setDialogError('Agrega al menos un artículo para esta categoría')
       return
     }
 
     const next = sortSuministros([
       ...items.filter((item) => item.categoria !== activeCategory),
-      { categoria: activeCategory, detalle },
+      { categoria: activeCategory, articulos },
     ])
 
     try {
@@ -126,27 +127,17 @@ export function SuministrosPicker({ items, onChange, onPersist }: SuministrosPic
             </button>
           </div>
           <p className="suministro-dialog-subtitle">
-            Indica exactamente qué artículos necesitas de esta categoría.
+            Agrega cada artículo que necesitas en esta categoría. Puedes añadir varios.
           </p>
-          <label className="suministro-dialog-label">
-            Detalle
-            <textarea
-              ref={textareaRef}
-              value={draftDetalle}
-              onChange={(event) => {
-                setDraftDetalle(event.target.value)
-                if (dialogError) setDialogError(null)
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
-                  event.preventDefault()
-                  void handleConfirm()
-                }
-              }}
-              placeholder={SUMINISTRO_PLACEHOLDERS[activeCategory]}
-              rows={4}
-            />
-          </label>
+          <ContactListField
+            label="Artículos necesarios"
+            placeholder={SUMINISTRO_ITEM_PLACEHOLDERS[activeCategory]}
+            values={draftArticulos}
+            onChange={(values) => {
+              setDraftArticulos(values)
+              if (dialogError) setDialogError(null)
+            }}
+          />
           {dialogError && <p className="error">{dialogError}</p>}
           <div className="suministro-dialog-actions">
             <button type="button" className="btn-secondary" onClick={closeDialog}>
@@ -161,7 +152,7 @@ export function SuministrosPicker({ items, onChange, onPersist }: SuministrosPic
               {persisting
                 ? 'Guardando...'
                 : selectedCategories.has(activeCategory)
-                  ? 'Guardar detalle'
+                  ? 'Guardar artículos'
                   : 'Agregar categoría'}
             </button>
           </div>
@@ -173,26 +164,26 @@ export function SuministrosPicker({ items, onChange, onPersist }: SuministrosPic
   return (
     <div className="suministros-picker">
       <div className="suministros-toolbar">
-        <span className={`suministros-count ${count > 0 ? 'active' : ''}`}>
+        <span className={`suministros-count ${categoryCount > 0 ? 'active' : ''}`}>
           {persisting
             ? 'Guardando...'
-            : count === 0
+            : categoryCount === 0
               ? 'Ninguna categoría configurada'
-              : `${count} categoría${count !== 1 ? 's' : ''} con detalle`}
+              : `${categoryCount} categoría${categoryCount !== 1 ? 's' : ''} · ${articulosCount} artículo${articulosCount !== 1 ? 's' : ''}`}
         </span>
         <div className="suministros-toolbar-actions">
           <button
             type="button"
             className="btn-text"
             onClick={() => void clearAll()}
-            disabled={count === 0 || persisting}
+            disabled={categoryCount === 0 || persisting}
           >
             Limpiar todo
           </button>
         </div>
       </div>
 
-      {count > 0 ? (
+      {categoryCount > 0 ? (
         <ul className="suministros-detalle-list" aria-label="Suministros configurados">
           {items.map((item) => (
             <li key={item.categoria} className="suministro-detalle-card">
@@ -220,19 +211,24 @@ export function SuministrosPicker({ items, onChange, onPersist }: SuministrosPic
                   </button>
                 </div>
               </div>
-              <p className="suministro-detalle-text">{item.detalle}</p>
+              <ul className="suministro-articulos-preview">
+                {item.articulos.map((articulo) => (
+                  <li key={articulo}>{articulo}</li>
+                ))}
+              </ul>
             </li>
           ))}
         </ul>
       ) : (
         <p className="suministros-empty-hint">
-          Elige una categoría y describe exactamente qué necesitas recibir.
+          Elige una categoría y agrega los artículos que necesitas recibir.
         </p>
       )}
 
       <div className="suministros-grid" role="group" aria-label="Categorías de suministros">
         {SUMINISTROS.map((categoria) => {
           const isSelected = selectedCategories.has(categoria)
+          const item = items.find((entry) => entry.categoria === categoria)
 
           return (
             <button
@@ -247,6 +243,11 @@ export function SuministrosPicker({ items, onChange, onPersist }: SuministrosPic
                 {SUMINISTRO_ICONS[categoria]}
               </span>
               <span className="suministro-chip-label">{categoria}</span>
+              {isSelected && item && (
+                <span className="suministro-chip-meta">
+                  {item.articulos.length} artículo{item.articulos.length !== 1 ? 's' : ''}
+                </span>
+              )}
               <span className="suministro-chip-check" aria-hidden="true">
                 {isSelected ? '✓' : '+'}
               </span>

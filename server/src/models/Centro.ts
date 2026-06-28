@@ -4,12 +4,12 @@ import { DEFAULT_TIPO_LUGAR, type TipoLugarId } from '../constants/placeTypes.js
 
 export interface SuministroNecesario {
   categoria: string
-  detalle: string
+  articulos: string[]
 }
 
 export interface ICentro extends Document {
-  email: string
-  password: string
+  email?: string
+  password?: string
   nombre: string
   tipoLugar: TipoLugarId
   lat?: number
@@ -28,15 +28,15 @@ export interface ICentro extends Document {
 const suministroNecesarioSchema = new Schema<SuministroNecesario>(
   {
     categoria: { type: String, required: true, trim: true },
-    detalle: { type: String, required: true, trim: true },
+    articulos: { type: [String], default: [] },
   },
   { _id: false },
 )
 
 const centroSchema = new Schema<ICentro>(
   {
-    email: { type: String, required: true, unique: true, trim: true, lowercase: true },
-    password: { type: String, required: true },
+    email: { type: String, unique: true, sparse: true, trim: true, lowercase: true },
+    password: { type: String },
     nombre: { type: String, required: true, trim: true },
     tipoLugar: { type: String, default: DEFAULT_TIPO_LUGAR },
     lat: { type: Number },

@@ -1,4 +1,14 @@
-import type { Hospital } from './hospitals'
+import { apiUrl } from '../config/api'
+
+export interface Hospital {
+  id: string
+  nombre: string
+  lat: number
+  lng: number
+  direccion?: string
+  telefono?: string
+  fuente: 'openstreetmap'
+}
 
 const CACHE_KEY = 'helpAcopio:hospitals:v1'
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
@@ -30,7 +40,7 @@ export async function fetchHospitals(): Promise<Hospital[]> {
   const cached = readCache()
   if (cached) return cached.hospitals
 
-  const response = await fetch('/api/hospitals')
+  const response = await fetch(apiUrl('/api/hospitals'))
 
   if (!response.ok) {
     const data = await response.json().catch(() => ({}))

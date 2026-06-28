@@ -36,7 +36,7 @@ import { normalizeSuministrosNecesarios } from '../utils/suministros.js'
 
 export function toPublicCentro(centro: {
   _id: unknown
-  email: string
+  email?: string
   nombre: string
   tipoLugar?: TipoLugarId
   lat?: number

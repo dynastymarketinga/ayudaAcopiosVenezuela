@@ -7,6 +7,7 @@ import {
   MAX_IMAGES,
   toPublicImageUrl,
   uploadImagenes,
+  uploadImagenesPublic,
   urlToFilePath,
 } from '../config/upload.js'
 import { Centro } from '../models/Centro.js'
@@ -21,6 +22,45 @@ import {
 import { parseSuministrosNecesarios } from '../utils/suministros.js'
 
 export const centrosRouter = Router()
+
+async function handleImagenesUpload(
+  centroId: string,
+  files: Express.Multer.File[] | undefined,
+  res: import('express').Response,
+) {
+  if (!files?.length) {
+    res.status(400).json({ message: 'Selecciona al menos una imagen' })
+    return
+  }
+
+  const centro = await Centro.findById(centroId).select('-password')
+  if (!centro) {
+    for (const file of files) {
+      fs.unlink(file.path, () => {})
+    }
+    res.status(404).json({ message: 'Centro no encontrado' })
+    return
+  }
+
+  const current = centro.imagenes ?? []
+  if (current.length + files.length > MAX_IMAGES) {
+    for (const file of files) {
+      fs.unlink(file.path, () => {})
+    }
+    res.status(400).json({ message: `Máximo ${MAX_IMAGES} imágenes por centro` })
+    return
+  }
+
+  const newUrls = files.map((file) => toPublicImageUrl(String(centro._id), file.filename))
+  centro.imagenes = [...current, ...newUrls]
+
+  if (!centro.imagenPrincipal) {
+    centro.imagenPrincipal = newUrls[0]
+  }
+
+  await centro.save()
+  res.json(toPublicCentro(centro))
+}
 
 centrosRouter.get('/supplies', (_req, res) => {
   res.json(SUMINISTROS)
@@ -48,6 +88,111 @@ centrosRouter.get('/', async (req, res) => {
   const centros = await Centro.find(query).select('-password').sort({ nombre: 1 })
 
   res.json(centros.map(toPublicCentro))
+})
+
+centrosRouter.post('/', async (req, res) => {
+  const {
+    nombre,
+    lat,
+    lng,
+    direccion,
+    suministrosNecesarios,
+    telefonos,
+    correosContacto,
+    sitiosWeb,
+    tipoLugar,
+  } = req.body
+
+  if (!nombre || typeof nombre !== 'string' || !nombre.trim()) {
+    res.status(400).json({ message: 'El nombre del centro es obligatorio' })
+    return
+  }
+
+  if (typeof lat !== 'number' || lat < -90 || lat > 90) {
+    res.status(400).json({ message: 'Latitud inválida' })
+    return
+  }
+
+  if (typeof lng !== 'number' || lng < -180 || lng > 180) {
+    res.status(400).json({ message: 'Longitud inválida' })
+    return
+  }
+
+  if (tipoLugar !== undefined && !isValidTipoLugar(tipoLugar)) {
+    res.status(400).json({ message: 'Tipo de lugar inválido' })
+    return
+  }
+
+  const parsedPhones = sanitizeStringArray(telefonos ?? [])
+  if (!parsedPhones) {
+    res.status(400).json({ message: 'Los teléfonos deben ser un arreglo' })
+    return
+  }
+  const phoneError = validatePhones(parsedPhones)
+  if (phoneError) {
+    res.status(400).json({ message: phoneError })
+    return
+  }
+
+  const parsedEmails = sanitizeStringArray(correosContacto ?? [])?.map((email) =>
+    email.toLowerCase(),
+  )
+  if (!parsedEmails) {
+    res.status(400).json({ message: 'Los correos deben ser un arreglo' })
+    return
+  }
+  const emailError = validateContactEmails(parsedEmails)
+  if (emailError) {
+    res.status(400).json({ message: emailError })
+    return
+  }
+
+  const parsedWebsites = sanitizeStringArray(sitiosWeb ?? [])
+  if (!parsedWebsites) {
+    res.status(400).json({ message: 'Los sitios web deben ser un arreglo' })
+    return
+  }
+  const siteError = validateWebsites(parsedWebsites)
+  if (siteError) {
+    res.status(400).json({ message: siteError })
+    return
+  }
+
+  const parsedSuministros = parseSuministrosNecesarios(suministrosNecesarios ?? [])
+  if (!parsedSuministros) {
+    res.status(400).json({
+      message: 'Cada suministro debe incluir una categoría válida y al menos un artículo',
+    })
+    return
+  }
+
+  const centro = await Centro.create({
+    nombre: nombre.trim(),
+    lat,
+    lng,
+    direccion: typeof direccion === 'string' ? direccion.trim() : '',
+    tipoLugar: tipoLugar ?? undefined,
+    telefonos: parsedPhones,
+    correosContacto: parsedEmails,
+    sitiosWeb: normalizeWebsites(parsedWebsites),
+    suministrosNecesarios: parsedSuministros,
+  })
+
+  res.status(201).json(toPublicCentro(centro))
+})
+
+centrosRouter.post('/:id/imagenes', (req, res, next) => {
+  uploadImagenesPublic.array('imagenes', MAX_IMAGES)(req, res, (err: unknown) => {
+    if (err) {
+      const message = err instanceof Error ? err.message : 'No se pudieron subir las imágenes'
+      res.status(400).json({ message })
+      return
+    }
+    next()
+  })
+}, async (req, res) => {
+  const files = req.files as Express.Multer.File[] | undefined
+  await handleImagenesUpload(req.params.id, files, res)
 })
 
 centrosRouter.put('/me', authMiddleware, async (req: AuthRequest, res) => {
@@ -142,7 +287,7 @@ centrosRouter.put('/me', authMiddleware, async (req: AuthRequest, res) => {
     const parsed = parseSuministrosNecesarios(suministrosNecesarios)
     if (!parsed) {
       res.status(400).json({
-        message: 'Cada suministro debe incluir una categoría válida y una descripción detallada',
+        message: 'Cada suministro debe incluir una categoría válida y al menos un artículo',
       })
       return
     }
@@ -167,35 +312,7 @@ centrosRouter.post('/me/imagenes', authMiddleware, (req, res, next) => {
   })
 }, async (req: AuthRequest, res) => {
   const files = req.files as Express.Multer.File[] | undefined
-  if (!files?.length) {
-    res.status(400).json({ message: 'Selecciona al menos una imagen' })
-    return
-  }
-
-  const centro = await Centro.findById(req.centroId).select('-password')
-  if (!centro) {
-    res.status(404).json({ message: 'Centro no encontrado' })
-    return
-  }
-
-  const current = centro.imagenes ?? []
-  if (current.length + files.length > MAX_IMAGES) {
-    for (const file of files) {
-      fs.unlink(file.path, () => {})
-    }
-    res.status(400).json({ message: `Máximo ${MAX_IMAGES} imágenes por centro` })
-    return
-  }
-
-  const newUrls = files.map((file) => toPublicImageUrl(String(centro._id), file.filename))
-  centro.imagenes = [...current, ...newUrls]
-
-  if (!centro.imagenPrincipal) {
-    centro.imagenPrincipal = newUrls[0]
-  }
-
-  await centro.save()
-  res.json(toPublicCentro(centro))
+  await handleImagenesUpload(req.centroId!, files, res)
 })
 
 centrosRouter.put('/me/imagen-principal', authMiddleware, async (req: AuthRequest, res) => {

@@ -1,9 +1,10 @@
+import { apiUrl } from '../config/api'
 import type { TipoLugarId } from '../constants/placeTypes'
 import type { SuministroNecesario } from '../constants/supplies'
 
 export interface Centro {
   _id: string
-  email: string
+  email?: string
   nombre: string
   tipoLugar: TipoLugarId
   lat?: number
@@ -47,7 +48,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
     headers.Authorization = `Bearer ${token}`
   }
 
-  const response = await fetch(path, { ...options, headers })
+  const response = await fetch(apiUrl(path), { ...options, headers })
 
   if (!response.ok) {
     const data = await response.json().catch(() => ({}))
@@ -88,6 +89,23 @@ export async function fetchCentros(tipo?: string): Promise<Centro[]> {
   return apiFetch(`/api/centros${query}`)
 }
 
+export async function createCentro(data: {
+  nombre: string
+  lat: number
+  lng: number
+  direccion?: string
+  tipoLugar?: TipoLugarId
+  telefonos?: string[]
+  correosContacto?: string[]
+  sitiosWeb?: string[]
+  suministrosNecesarios: SuministroNecesario[]
+}): Promise<Centro> {
+  return apiFetch('/api/centros', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
 export async function updateCentro(data: {
   nombre?: string
   lat?: number
@@ -117,7 +135,7 @@ async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
     headers.Authorization = `Bearer ${token}`
   }
 
-  const response = await fetch(path, {
+  const response = await fetch(apiUrl(path), {
     method: 'POST',
     headers,
     body: formData,
@@ -137,6 +155,14 @@ export async function uploadCentroImagenes(files: File[]): Promise<Centro> {
     formData.append('imagenes', file)
   }
   return apiUpload('/api/centros/me/imagenes', formData)
+}
+
+export async function uploadCentroImagenesPublic(centroId: string, files: File[]): Promise<Centro> {
+  const formData = new FormData()
+  for (const file of files) {
+    formData.append('imagenes', file)
+  }
+  return apiUpload(`/api/centros/${centroId}/imagenes`, formData)
 }
 
 export async function setImagenPrincipal(url: string): Promise<Centro> {

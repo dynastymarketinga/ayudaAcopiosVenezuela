@@ -33,7 +33,7 @@ export function Layout() {
             Mapa
           </NavLink>
           <NavLink to="/panel" className={({ isActive }) => (isActive ? 'active' : '')}>
-            Panel de centros
+            Crear centro de acopio
           </NavLink>
         </div>
       </nav>

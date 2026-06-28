@@ -1,3 +1,5 @@
+import { apiUrl } from '../config/api'
+
 export interface GeocodeResult {
   id: number
   lat: number
@@ -7,7 +9,7 @@ export interface GeocodeResult {
 
 export async function searchAddress(query: string): Promise<GeocodeResult[]> {
   const params = new URLSearchParams({ q: query })
-  const response = await fetch(`/api/geocode/search?${params}`)
+  const response = await fetch(apiUrl(`/api/geocode/search?${params}`))
 
   if (!response.ok) {
     const data = await response.json().catch(() => ({}))

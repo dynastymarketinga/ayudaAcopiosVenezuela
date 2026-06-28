@@ -55,6 +55,11 @@ authRouter.post('/login', async (req, res) => {
     return
   }
 
+  if (!centro.password) {
+    res.status(401).json({ message: 'Credenciales incorrectas' })
+    return
+  }
+
   const valid = await bcrypt.compare(password, centro.password)
   if (!valid) {
     res.status(401).json({ message: 'Credenciales incorrectas' })

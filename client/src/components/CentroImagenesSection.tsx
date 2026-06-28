@@ -5,6 +5,7 @@ import {
   uploadCentroImagenes,
   type Centro,
 } from '../api/centros'
+import { resolveAssetUrl } from '../config/api'
 
 const MAX_IMAGES = 10
 const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,image/gif'
@@ -124,7 +125,7 @@ export function CentroImagenesSection({ centro, onUpdated }: CentroImagenesSecti
 
             return (
               <li key={url} className={`centro-imagen-item ${isPrincipal ? 'principal' : ''}`}>
-                <img src={url} alt="" loading="lazy" />
+                <img src={resolveAssetUrl(url)} alt="" loading="lazy" />
                 {isPrincipal && <span className="centro-imagen-badge">Principal</span>}
                 <div className="centro-imagen-actions">
                   {!isPrincipal && (

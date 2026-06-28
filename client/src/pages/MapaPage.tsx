@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { fetchCentros, type Centro } from '../api/centros'
+import { resolveAssetUrl } from '../config/api'
 import { fetchHospitals, getCachedHospitals, type Hospital } from '../api/hospitals'
 import { CentrosMap } from '../components/CentrosMap'
+import { SuministrosDisplay } from '../components/SuministrosDisplay'
 import { getTipoLugarLabel, TIPOS_LUGAR, type TipoLugarId } from '../constants/placeTypes'
-import { SUMINISTRO_ICONS, type Suministro } from '../constants/supplies'
+import { countArticulos } from '../constants/supplies'
 
 type TipoFilter = 'todos' | TipoLugarId
 
@@ -26,7 +28,8 @@ interface CentroCardProps {
 }
 
 function CentroCard({ centro, expanded, onToggle, cardRef }: CentroCardProps) {
-  const suministrosCount = centro.suministrosNecesarios.length
+  const articulosCount = countArticulos(centro.suministrosNecesarios)
+  const categoriasCount = centro.suministrosNecesarios.length
 
   return (
     <li ref={cardRef} className={`centro-card ${expanded ? 'expanded' : ''}`}>
@@ -42,9 +45,10 @@ function CentroCard({ centro, expanded, onToggle, cardRef }: CentroCardProps) {
           {!expanded && centro.direccion && (
             <span className="centro-card-address">{centro.direccion}</span>
           )}
-          {!expanded && (
+          {!expanded && articulosCount > 0 && (
             <span className="centro-badge">
-              {suministrosCount} suministro{suministrosCount !== 1 ? 's' : ''}
+              {articulosCount} artículo{articulosCount !== 1 ? 's' : ''} · {categoriasCount}{' '}
+              categoría{categoriasCount !== 1 ? 's' : ''}
             </span>
           )}
         </div>
@@ -57,7 +61,7 @@ function CentroCard({ centro, expanded, onToggle, cardRef }: CentroCardProps) {
         <div className="centro-card-body">
           {centro.imagenPrincipal && (
             <img
-              src={centro.imagenPrincipal}
+              src={resolveAssetUrl(centro.imagenPrincipal)}
               alt={`Foto de ${centro.nombre}`}
               className="centro-card-image"
             />
@@ -105,22 +109,8 @@ function CentroCard({ centro, expanded, onToggle, cardRef }: CentroCardProps) {
           )}
 
           <h3>Suministros necesarios</h3>
-          {suministrosCount > 0 ? (
-            <ul className="suministros-detalle-list suministros-detalle-list-compact">
-              {centro.suministrosNecesarios.map((item) => (
-                <li key={item.categoria} className="suministro-detalle-card">
-                  <div className="suministro-detalle-header">
-                    <span className="suministro-detalle-title">
-                      <span aria-hidden="true">
-                        {SUMINISTRO_ICONS[item.categoria as Suministro]}
-                      </span>
-                      {item.categoria}
-                    </span>
-                  </div>
-                  <p className="suministro-detalle-text">{item.detalle}</p>
-                </li>
-              ))}
-            </ul>
+          {articulosCount > 0 ? (
+            <SuministrosDisplay items={centro.suministrosNecesarios} compact />
           ) : (
             <p className="empty">Este centro no ha registrado suministros aún.</p>
           )}
@@ -415,9 +405,7 @@ export function MapaPage() {
             {mapItems.map((item) => {
               const expanded =
                 selected?.kind === item.kind &&
-                (item.kind === 'centro'
-                  ? selected.data._id === item.data._id
-                  : selected.data.id === item.data.id)
+                getSelectionId(selected) === getSelectionId(item)
 
               if (item.kind === 'centro') {
                 return (
