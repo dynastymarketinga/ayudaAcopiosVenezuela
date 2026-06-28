@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import type { GeocodeResult } from '../api/geocode'
 import { createCentro, uploadCentroImagenesPublic } from '../api/centros'
@@ -11,6 +11,12 @@ import type { SuministroNecesario } from '../constants/supplies'
 
 const MAX_IMAGES = 10
 const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,image/gif'
+
+function getSubmitHint(nombre: string, position: [number, number] | null): string | null {
+  if (!nombre.trim()) return 'Ingresa el nombre de tu centro'
+  if (!position) return 'Marca tu ubicación en el mapa'
+  return null
+}
 
 export function CrearPage() {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -26,12 +32,25 @@ export function CrearPage() {
   const [suministros, setSuministros] = useState<SuministroNecesario[]>([])
   const [pendingImages, setPendingImages] = useState<File[]>([])
   const [previewUrls, setPreviewUrls] = useState<string[]>([])
+  const [contactOpen, setContactOpen] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [nombreError, setNombreError] = useState<string | null>(null)
   const [created, setCreated] = useState(false)
 
   const isNombreValid = nombre.trim().length > 0
+  const canSubmit = isNombreValid && position !== null && !submitting
+  const submitHint = getSubmitHint(nombre, position)
+
+  const progress = useMemo(() => {
+    let value = 0
+    if (nombre.trim()) value += 35
+    if (position) value += 35
+    if (pendingImages.length > 0) value += 10
+    if (suministros.length > 0) value += 20
+    return value
+  }, [nombre, position, pendingImages.length, suministros.length])
 
   useEffect(() => {
     const urls = pendingImages.map((file) => URL.createObjectURL(file))
@@ -41,18 +60,8 @@ export function CrearPage() {
     }
   }, [pendingImages])
 
-  function handleAddressSelect(result: GeocodeResult) {
-    const coords: [number, number] = [result.lat, result.lng]
-    setPosition(coords)
-    setFlyTo(coords)
-    setDireccion(result.displayName)
-  }
-
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? [])
-    event.target.value = ''
+  function addImages(files: File[]) {
     if (files.length === 0) return
-
     setPendingImages((current) => {
       const combined = [...current, ...files]
       if (combined.length > MAX_IMAGES) {
@@ -62,6 +71,25 @@ export function CrearPage() {
       setError(null)
       return combined
     })
+  }
+
+  function handleAddressSelect(result: GeocodeResult) {
+    const coords: [number, number] = [result.lat, result.lng]
+    setPosition(coords)
+    setFlyTo(coords)
+    setDireccion(result.displayName)
+  }
+
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    addImages(Array.from(event.target.files ?? []))
+    event.target.value = ''
+  }
+
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault()
+    setDragOver(false)
+    const files = Array.from(event.dataTransfer.files).filter((f) => f.type.startsWith('image/'))
+    addImages(files)
   }
 
   function removePendingImage(index: number) {
@@ -131,14 +159,19 @@ export function CrearPage() {
 
   if (created) {
     return (
-      <div className="panel-dashboard">
-        <section className="card">
-          <h1>Centro creado</h1>
-          <p className="panel-subtitle">
-            Tu centro de acopio ya está publicado en el mapa. Las personas podrán ver qué
-            suministros necesitas.
+      <div className="crear-page">
+        <section className="crear-success card">
+          <img src="/logo.png" alt="" className="crear-success-logo" width={80} height={80} />
+          <h1>¡Tu centro ya está en el mapa!</h1>
+          <p className="crear-lead">
+            Las personas en Venezuela pueden ver qué suministros necesitas y cómo contactarte.
           </p>
-          <Link to="/mapa" className="btn-save">
+          <ul className="crear-trust-list crear-trust-list--vertical">
+            <li>Visible en el mapa nacional de ayuda</li>
+            <li>Comparte el enlace con tu comunidad</li>
+            <li>Actualiza suministros cuando lo necesites</li>
+          </ul>
+          <Link to="/mapa" className="btn-save btn-save--large">
             Ver en el mapa
           </Link>
         </section>
@@ -147,46 +180,89 @@ export function CrearPage() {
   }
 
   return (
-    <div className="panel-dashboard">
-      <header className="panel-header">
-        <div>
-          <h1>Crear centro de acopio</h1>
-          <p className="panel-subtitle">
-            Completa la información de tu centro para publicarlo en el mapa.
-          </p>
+    <div className="crear-page">
+      <header className="crear-hero">
+        <p className="crear-eyebrow">Red de Acopio Venezuela</p>
+        <h1>Publica tu centro en el mapa</h1>
+        <p className="crear-lead">
+          Conecta con personas que quieren ayudar. Registra tu centro en minutos y muestra qué
+          necesitas recibir.
+        </p>
+        <ul className="crear-trust-badges" aria-label="Beneficios">
+          <li>✓ Gratis</li>
+          <li>✓ Sin cuenta</li>
+          <li>✓ Visible al instante</li>
+        </ul>
+        <div className="crear-progress" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+          <div className="crear-progress-bar" style={{ width: `${progress}%` }} />
         </div>
+        <p className="crear-progress-label">{progress}% completado</p>
       </header>
 
-      <form className="dashboard-form" onSubmit={handleSubmit}>
-        <section className="card">
-          <h2>Nombre del centro</h2>
-          <p className="panel-subtitle">
-            Este es el nombre con el que aparecerá tu centro en el mapa y en las búsquedas.
-          </p>
-          <label>
-            Nombre (obligatorio)
-            <input
-              ref={nombreInputRef}
-              value={nombre}
-              onChange={(e) => {
-                setNombre(e.target.value)
-                if (nombreError) setNombreError(null)
-              }}
-              placeholder="Ej: Centro comunitario Norte"
-              required
-              aria-required="true"
-              aria-invalid={nombreError ? true : undefined}
-            />
-            {nombreError && <p className="error">{nombreError}</p>}
-          </label>
-        </section>
+      <form className="crear-form dashboard-form" onSubmit={handleSubmit}>
+        <section className="card crear-section">
+          <div className="crear-section-head">
+            <span className="crear-step">1</span>
+            <div>
+              <h2>Tu centro</h2>
+              <p className="crear-section-desc">Nombre, tipo y fotos para que te reconozcan</p>
+            </div>
+          </div>
 
-        <section className="card">
-          <h2>Imágenes del centro</h2>
-          <p className="panel-subtitle">
-            Sube fotos de tu centro. La primera imagen se usará como foto principal en el mapa.
-          </p>
-          <div className="centro-imagenes-upload">
+          <div className="crear-field-grid">
+            <label className="crear-field crear-field--wide">
+              <span className="crear-label">
+                Nombre del centro <span className="required">*</span>
+              </span>
+              <input
+                ref={nombreInputRef}
+                value={nombre}
+                onChange={(e) => {
+                  setNombre(e.target.value)
+                  if (nombreError) setNombreError(null)
+                }}
+                placeholder="Ej: Centro comunitario Norte"
+                required
+                aria-required="true"
+                aria-invalid={nombreError ? true : undefined}
+              />
+              {nombreError && <p className="error crear-field-error">{nombreError}</p>}
+            </label>
+
+            <label className="crear-field">
+              <span className="crear-label">Tipo de establecimiento</span>
+              <select
+                value={tipoLugar}
+                onChange={(e) => setTipoLugar(e.target.value as TipoLugarId)}
+              >
+                {TIPOS_LUGAR.map((tipo) => (
+                  <option key={tipo.id} value={tipo.id}>
+                    {tipo.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div
+            className={`crear-dropzone ${dragOver ? 'crear-dropzone--active' : ''} ${pendingImages.length >= MAX_IMAGES ? 'crear-dropzone--disabled' : ''}`}
+            onDragOver={(e) => {
+              e.preventDefault()
+              if (pendingImages.length < MAX_IMAGES) setDragOver(true)
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            onClick={() => pendingImages.length < MAX_IMAGES && inputRef.current?.click()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                inputRef.current?.click()
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label="Subir imágenes del centro"
+          >
             <input
               ref={inputRef}
               type="file"
@@ -195,20 +271,19 @@ export function CrearPage() {
               hidden
               onChange={handleFileChange}
             />
-            <button
-              type="button"
-              className="btn-secondary"
-              disabled={submitting || pendingImages.length >= MAX_IMAGES}
-              onClick={() => inputRef.current?.click()}
-            >
+            <span className="crear-dropzone-icon" aria-hidden="true">
+              📷
+            </span>
+            <strong>
               {pendingImages.length >= MAX_IMAGES
-                ? `Límite de ${MAX_IMAGES} imágenes`
-                : 'Subir imágenes'}
-            </button>
-            <span className="centro-imagenes-hint">
+                ? `Límite de ${MAX_IMAGES} imágenes alcanzado`
+                : 'Arrastra fotos aquí o haz clic'}
+            </strong>
+            <span className="crear-dropzone-hint">
               JPG, PNG, WEBP o GIF · máx. 5 MB · {pendingImages.length}/{MAX_IMAGES}
             </span>
           </div>
+
           {previewUrls.length > 0 && (
             <ul className="centro-imagenes-grid">
               {previewUrls.map((url, index) => (
@@ -220,7 +295,10 @@ export function CrearPage() {
                       type="button"
                       className="danger"
                       disabled={submitting}
-                      onClick={() => removePendingImage(index)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        removePendingImage(index)
+                      }}
                     >
                       Eliminar
                     </button>
@@ -231,92 +309,105 @@ export function CrearPage() {
           )}
         </section>
 
-        <section className="card">
-          <h2>Tipo de lugar</h2>
-          <p className="panel-subtitle">
-            Indica qué tipo de establecimiento es tu centro para mostrarlo con el icono correcto en el mapa.
-          </p>
-          <label>
-            Categoría
-            <select
-              value={tipoLugar}
-              onChange={(e) => setTipoLugar(e.target.value as TipoLugarId)}
-            >
-              {TIPOS_LUGAR.map((tipo) => (
-                <option key={tipo.id} value={tipo.id}>
-                  {tipo.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </section>
+        <section className="card crear-section">
+          <div className="crear-section-head">
+            <span className="crear-step">2</span>
+            <div>
+              <h2>Ubicación</h2>
+              <p className="crear-section-desc">Para que las personas sepan dónde encontrarte</p>
+            </div>
+          </div>
 
-        <section className="card">
-          <h2>Ubicación</h2>
-          <p className="panel-subtitle">
-            Busca tu dirección o haz clic en el mapa para marcar la ubicación de tu centro.
-          </p>
           <AddressSearch
             value={direccion}
             onChange={setDireccion}
             onSelect={handleAddressSelect}
           />
-          <div className="mt-1">
+
+          {!position && (
+            <p className="crear-map-hint" role="status">
+              📍 Busca tu dirección o haz clic en el mapa para marcar tu centro
+            </p>
+          )}
+
+          <div className={`crear-map-wrap ${position ? 'crear-map-wrap--placed' : ''}`}>
             <MapPicker
               position={position}
               onPositionChange={setPosition}
               flyTo={flyTo}
               tipoLugar={tipoLugar}
-              height="360px"
+              height="420px"
             />
           </div>
         </section>
 
-        <section className="card">
-          <h2>Información de contacto</h2>
-          <p className="panel-subtitle">
-            Agrega teléfonos, correos y sitios web para que las personas puedan comunicarse contigo.
-          </p>
-
-          <div className="contact-fields">
-            <ContactListField
-              label="Teléfonos"
-              placeholder="Ej: +58 412 1234567"
-              values={telefonos}
-              onChange={setTelefonos}
-              type="tel"
-            />
-            <ContactListField
-              label="Correos de contacto"
-              placeholder="Ej: contacto@micentro.org"
-              values={correosContacto}
-              onChange={setCorreosContacto}
-              type="email"
-            />
-            <ContactListField
-              label="Sitios web"
-              placeholder="Ej: www.micentro.org"
-              values={sitiosWeb}
-              onChange={setSitiosWeb}
-              type="url"
-            />
+        <section className="card crear-section">
+          <div className="crear-section-head">
+            <span className="crear-step">3</span>
+            <div>
+              <h2>¿Qué necesitas recibir?</h2>
+              <p className="crear-section-desc">
+                Opcional, pero ayuda mucho a quien quiera colaborar
+              </p>
+            </div>
           </div>
-        </section>
-
-        <section className="card">
-          <h2>Suministros necesarios</h2>
-          <p className="panel-subtitle">
-            Indica qué artículos necesita recibir tu centro. Aparecerán en el mapa para quienes quieran
-            ayudar.
-          </p>
           <SuministrosPicker items={suministros} onChange={setSuministros} />
         </section>
 
-        <div className="save-actions">
-          {error && <p className="error">{error}</p>}
-          <button type="submit" className="btn-save" disabled={submitting || !isNombreValid}>
-            {submitting ? 'Creando...' : 'Crear centro de acopio'}
+        <section className="card crear-section crear-contact-section">
+          <button
+            type="button"
+            className="crear-contact-toggle"
+            onClick={() => setContactOpen((open) => !open)}
+            aria-expanded={contactOpen}
+          >
+            <span>
+              <strong>Información de contacto</strong>
+              <span className="crear-optional">Opcional</span>
+            </span>
+            <span className="crear-contact-chevron" aria-hidden="true">
+              {contactOpen ? '▲' : '▼'}
+            </span>
           </button>
+
+          {contactOpen && (
+            <div className="contact-fields crear-contact-fields">
+              <ContactListField
+                label="Teléfonos"
+                placeholder="Ej: +58 412 1234567"
+                values={telefonos}
+                onChange={setTelefonos}
+                type="tel"
+              />
+              <ContactListField
+                label="Correos de contacto"
+                placeholder="Ej: contacto@micentro.org"
+                values={correosContacto}
+                onChange={setCorreosContacto}
+                type="email"
+              />
+              <ContactListField
+                label="Sitios web"
+                placeholder="Ej: www.micentro.org"
+                values={sitiosWeb}
+                onChange={setSitiosWeb}
+                type="url"
+              />
+            </div>
+          )}
+        </section>
+
+        <div className="crear-submit-bar">
+          <div className="crear-submit-inner">
+            {error && <p className="error crear-submit-error">{error}</p>}
+            {!error && submitHint && <p className="crear-submit-hint">{submitHint}</p>}
+            {!error && !submitHint && (
+              <p className="crear-submit-ready">✓ Listo para publicar en el mapa</p>
+            )}
+            <button type="submit" className="btn-save btn-save--large" disabled={!canSubmit}>
+              {submitting ? 'Publicando...' : 'Publicar en el mapa'}
+            </button>
+          </div>
         </div>
       </form>
     </div>
