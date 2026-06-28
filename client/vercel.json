@@ -1,0 +1,11 @@
+{
+  "env": {
+    "VITE_API_URL": "https://ayudaacopiosvenezuela.onrender.com"
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
