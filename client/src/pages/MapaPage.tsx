@@ -583,7 +583,7 @@ export function MapaPage() {
           <NavLink to="/mapa" className={({ isActive }) => (isActive ? 'active' : '')} onClick={() => setSidebarOpen(false)}>
             Mapa
           </NavLink>
-          <NavLink to="/panel" className={({ isActive }) => (isActive ? 'active' : '')} onClick={() => setSidebarOpen(false)}>
+          <NavLink to="/crear" className={({ isActive }) => (isActive ? 'active' : '')} onClick={() => setSidebarOpen(false)}>
             Crear centro de acopio
           </NavLink>
         </nav>
