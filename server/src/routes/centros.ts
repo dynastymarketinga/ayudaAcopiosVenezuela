@@ -73,10 +73,7 @@ centrosRouter.get('/place-types', (_req, res) => {
 })
 
 centrosRouter.get('/', async (req, res) => {
-  const query: Record<string, unknown> = {
-    lat: { $exists: true, $ne: null },
-    lng: { $exists: true, $ne: null },
-  }
+  const query: Record<string, unknown> = {}
 
   const tipo = typeof req.query.tipo === 'string' ? req.query.tipo : undefined
   if (tipo) {
@@ -111,14 +108,24 @@ centrosRouter.post('/', async (req, res) => {
     return
   }
 
-  if (typeof lat !== 'number' || lat < -90 || lat > 90) {
-    res.status(400).json({ message: 'Latitud inválida' })
+  const hasLat = lat !== undefined && lat !== null
+  const hasLng = lng !== undefined && lng !== null
+
+  if (hasLat !== hasLng) {
+    res.status(400).json({ message: 'Debes indicar latitud y longitud juntas' })
     return
   }
 
-  if (typeof lng !== 'number' || lng < -180 || lng > 180) {
-    res.status(400).json({ message: 'Longitud inválida' })
-    return
+  if (hasLat) {
+    if (typeof lat !== 'number' || lat < -90 || lat > 90) {
+      res.status(400).json({ message: 'Latitud inválida' })
+      return
+    }
+
+    if (typeof lng !== 'number' || lng < -180 || lng > 180) {
+      res.status(400).json({ message: 'Longitud inválida' })
+      return
+    }
   }
 
   if (tipoLugar !== undefined && !isValidTipoLugar(tipoLugar)) {
@@ -176,8 +183,7 @@ centrosRouter.post('/', async (req, res) => {
 
   const centro = await Centro.create({
     nombre: nombre.trim(),
-    lat,
-    lng,
+    ...(hasLat ? { lat, lng } : {}),
     direccion: typeof direccion === 'string' ? direccion.trim() : '',
     estado: resolveEstadoFromDireccion(typeof direccion === 'string' ? direccion : undefined),
     tipoLugar: tipoLugar ?? undefined,

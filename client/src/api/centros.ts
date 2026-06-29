@@ -94,8 +94,8 @@ export async function fetchCentros(tipo?: string): Promise<Centro[]> {
 
 export async function createCentro(data: {
   nombre: string
-  lat: number
-  lng: number
+  lat?: number
+  lng?: number
   direccion?: string
   tipoLugar?: TipoLugarId
   prioridad?: PrioridadId

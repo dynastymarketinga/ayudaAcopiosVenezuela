@@ -38,7 +38,7 @@ export function CrearPage() {
 
   const isNombreValid = nombre.trim().length > 0
   const hasSuministros = suministros.length > 0
-  const canSubmit = isNombreValid && position !== null
+  const canSubmit = isNombreValid
 
   useEffect(() => {
     const urls = pendingImages.map((file) => URL.createObjectURL(file))
@@ -106,11 +106,6 @@ export function CrearPage() {
       return
     }
     setNombreError(null)
-    if (!position) {
-      setError('Marca tu ubicación en el mapa')
-      scrollToFeedback(ubicacionSectionRef.current)
-      return
-    }
 
     const incomplete = suministros.filter((item) => item.articulos.length === 0)
     if (incomplete.length > 0) {
@@ -127,8 +122,7 @@ export function CrearPage() {
     try {
       const centro = await createCentro({
         nombre: nombre.trim(),
-        lat: position[0],
-        lng: position[1],
+        ...(position ? { lat: position[0], lng: position[1] } : {}),
         direccion: direccion.trim(),
         telefonos: cleanContactList(telefonos),
         correosContacto: cleanContactList(correosContacto),
@@ -161,8 +155,8 @@ export function CrearPage() {
           <img src="/logo.png" alt="" className="crear-success-logo" width={72} height={72} />
           <h1>¡Centro publicado!</h1>
           <p className="crear-hero-sub">
-            Tu centro ya está en el mapa nacional. Las personas podrán ver qué suministros
-            necesitas y cómo contactarte.
+            Tu centro ya está publicado. Las personas podrán ver qué suministros necesitas y
+            cómo contactarte.
           </p>
           <Link to="/mapa" className="btn-save">
             Ver en el mapa
@@ -190,11 +184,11 @@ export function CrearPage() {
             </span>
             Nombre del centro
           </li>
-          <li className={position ? 'done' : 'pending'}>
+          <li className={position ? 'done optional' : 'optional'}>
             <span className="crear-check-icon" aria-hidden="true">
-              {position ? '✓' : '○'}
+              {position ? '✓' : '·'}
             </span>
-            Ubicación en el mapa
+            Ubicación en el mapa <span className="checklist-tag">opcional</span>
           </li>
           <li className={hasSuministros ? 'done optional' : 'optional'}>
             <span className="crear-check-icon" aria-hidden="true">
@@ -342,7 +336,8 @@ export function CrearPage() {
           <section ref={ubicacionSectionRef} className="card crear-card crear-grid-full">
             <h2 className="crear-card-title">
               <span className="crear-step">3</span>
-              Ubicación <span className="required-mark">*</span>
+              Ubicación
+              <span className="badge-optional">Opcional</span>
             </h2>
             <AddressSearch
               value={direccion}
@@ -359,7 +354,7 @@ export function CrearPage() {
               </p>
             ) : (
               <p className="crear-map-hint" role="status">
-                Busca tu dirección o haz clic en el mapa
+                Opcional — busca tu dirección o haz clic en el mapa para aparecer en el mapa
               </p>
             )}
             <div className={`crear-map-wrap ${position ? 'has-marker' : ''}`}>
