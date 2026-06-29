@@ -1,5 +1,6 @@
 import { apiUrl } from '../config/api'
 import type { TipoLugarId } from '../constants/placeTypes'
+import type { PrioridadId } from '../constants/prioridades'
 import type { SuministroNecesario } from '../constants/supplies'
 
 export interface Centro {
@@ -7,6 +8,7 @@ export interface Centro {
   email?: string
   nombre: string
   tipoLugar: TipoLugarId
+  prioridad: PrioridadId
   lat?: number
   lng?: number
   direccion?: string
@@ -96,6 +98,7 @@ export async function createCentro(data: {
   lng: number
   direccion?: string
   tipoLugar?: TipoLugarId
+  prioridad?: PrioridadId
   telefonos?: string[]
   correosContacto?: string[]
   sitiosWeb?: string[]
@@ -113,6 +116,7 @@ export async function updateCentro(data: {
   lng?: number
   direccion?: string
   tipoLugar?: TipoLugarId
+  prioridad?: PrioridadId
   telefonos?: string[]
   correosContacto?: string[]
   sitiosWeb?: string[]

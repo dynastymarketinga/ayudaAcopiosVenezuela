@@ -256,6 +256,28 @@
   transform: scale(1.08) translateY(-2px);
 }
 
+.centro-marker-pin.centro-marker-selected {
+  transform: scale(1.12) translateY(-3px);
+  filter: drop-shadow(0 0 8px var(--prioridad-color));
+}
+
+@keyframes prioridad-pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.15);
+  }
+}
+
+.centro-marker-prioridad-alta .prioridad-pulse-ring {
+  animation: prioridad-pulse 1.8s ease-in-out infinite;
+  transform-origin: 22px 19px;
+}
+
 .popup-content strong {
   display: block;
   margin-bottom: 0.35rem;
@@ -414,6 +436,10 @@
   color: var(--text);
 }
 
+.hospital-card {
+  border-left-color: #dc2626;
+}
+
 .hospital-card.expanded {
   border-color: #dc2626;
   background: rgba(220, 38, 38, 0.06);
@@ -543,6 +569,185 @@
   color: var(--accent);
 }
 
+.centro-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.prioridad-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: var(--prioridad-color);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--prioridad-color) 40%, transparent);
+}
+
+.prioridad-filter {
+  margin-bottom: 1.25rem;
+}
+
+.prioridad-filter h3 {
+  font-size: 0.95rem;
+  margin: 0 0 0.65rem;
+  color: var(--text-h);
+}
+
+.prioridad-filter-chips {
+  gap: 0.5rem;
+}
+
+.prioridad-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 2px solid var(--border);
+  background: var(--code-bg);
+  font-size: 0.82rem;
+  color: var(--text-h);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.12s ease;
+}
+
+.prioridad-chip:hover {
+  border-color: var(--chip-color, var(--accent));
+  transform: translateY(-1px);
+}
+
+.prioridad-chip.active {
+  background: var(--chip-color, var(--accent));
+  border-color: var(--chip-color, var(--accent));
+  color: #fff;
+}
+
+.prioridad-chip.active .tipo-chip-dot {
+  background: #fff !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+}
+
+.prioridad-chip:not(.active) .tipo-chip-dot {
+  width: 0.65rem;
+  height: 0.65rem;
+}
+
+.centro-detail-prioridad {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.88rem;
+  color: var(--text-h);
+}
+
+.prioridad-picker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.prioridad-option {
+  display: grid;
+  gap: 0.15rem;
+  justify-items: center;
+  padding: 0.85rem 0.5rem;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--code-bg);
+  cursor: pointer;
+  font: inherit;
+  text-align: center;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
+}
+
+.prioridad-option:hover {
+  border-color: var(--prioridad-color);
+  transform: translateY(-1px);
+}
+
+.prioridad-option.selected {
+  border-color: var(--prioridad-color);
+  background: var(--prioridad-light);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--prioridad-color) 22%, transparent);
+}
+
+.prioridad-option-dot {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: var(--prioridad-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--prioridad-color) 25%, transparent);
+}
+
+.prioridad-option-label {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--prioridad-color);
+}
+
+.prioridad-option-hint {
+  font-size: 0.72rem;
+  color: var(--text);
+}
+
+.mapa-prioridad-leyenda {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 1000;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12);
+  font-size: 0.78rem;
+  color: var(--text-h);
+  pointer-events: none;
+}
+
+.mapa-leyenda-title {
+  font-weight: 700;
+  margin-right: 0.15rem;
+}
+
+.mapa-leyenda-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.mapa-leyenda-dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  background: var(--leyenda-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--leyenda-color) 30%, transparent);
+}
+
+@media (max-width: 640px) {
+  .prioridad-picker {
+    grid-template-columns: 1fr;
+  }
+
+  .mapa-prioridad-leyenda {
+    left: 0.65rem;
+    right: 0.65rem;
+    bottom: 0.65rem;
+    justify-content: center;
+  }
+}
+
 .mapa-map {
   position: relative;
   min-height: calc(100vh - var(--navbar-height));
@@ -565,20 +770,24 @@
 .centro-card {
   min-width: 0;
   border: 1px solid var(--border);
+  border-left: 4px solid var(--prioridad-color, #d97706);
   border-radius: 10px;
   background: var(--code-bg);
   overflow: hidden;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .centro-card:hover {
-  border-color: var(--accent);
+  border-color: var(--prioridad-color, var(--accent));
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--prioridad-color, var(--accent)) 18%, transparent);
 }
 
 .centro-card.expanded {
   grid-column: 1 / -1;
-  border-color: var(--accent);
-  background: rgba(37, 99, 235, 0.06);
+  border-color: var(--prioridad-color, var(--accent));
+  border-left-width: 5px;
+  background: color-mix(in srgb, var(--prioridad-color, var(--accent)) 9%, var(--code-bg));
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--prioridad-color, var(--accent)) 16%, transparent);
 }
 
 .centro-card-header {

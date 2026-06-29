@@ -3,6 +3,8 @@ import { MapContainer, Marker, useMap, useMapEvents } from 'react-leaflet'
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../constants/map'
 import type { TipoLugarId } from '../constants/placeTypes'
 import { DEFAULT_TIPO_LUGAR } from '../constants/placeTypes'
+import type { PrioridadId } from '../constants/prioridades'
+import { DEFAULT_PRIORIDAD } from '../constants/prioridades'
 import { createCentroMarkerIcon } from '../utils/leaflet'
 import { MapTileLayers } from './MapTileLayers'
 import 'leaflet/dist/leaflet.css'
@@ -12,6 +14,7 @@ interface MapPickerProps {
   onPositionChange: (pos: [number, number]) => void
   flyTo?: [number, number] | null
   tipoLugar?: TipoLugarId
+  prioridad?: PrioridadId
   height?: string
 }
 
@@ -45,6 +48,7 @@ export function MapPicker({
   onPositionChange,
   flyTo,
   tipoLugar = DEFAULT_TIPO_LUGAR,
+  prioridad = DEFAULT_PRIORIDAD,
   height = '320px',
 }: MapPickerProps) {
   const center = position ?? DEFAULT_MAP_CENTER
@@ -58,7 +62,7 @@ export function MapPicker({
         {position && (
           <Marker
             position={position}
-            icon={createCentroMarkerIcon(tipoLugar, 'selected')}
+            icon={createCentroMarkerIcon(tipoLugar, 'selected', prioridad)}
           />
         )}
       </MapContainer>

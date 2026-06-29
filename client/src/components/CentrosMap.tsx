@@ -64,6 +64,7 @@ export function CentrosMap({
             icon={createCentroMarkerIcon(
               centro.tipoLugar ?? 'centro_acopio',
               selectedId === centro._id ? 'selected' : 'default',
+              centro.prioridad ?? 'media',
             )}
             eventHandlers={{
               click: () => onSelectCentro?.(centro),

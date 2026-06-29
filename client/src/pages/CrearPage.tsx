@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type DragEvent, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import type { GeocodeResult } from '../api/geocode'
 import { createCentro, uploadCentroImagenesPublic } from '../api/centros'
@@ -7,6 +7,7 @@ import { cleanContactList, ContactListField } from '../components/ContactListFie
 import { MapPicker } from '../components/MapPicker'
 import { SuministrosPicker } from '../components/SuministrosPicker'
 import { DEFAULT_TIPO_LUGAR, TIPOS_LUGAR, type TipoLugarId } from '../constants/placeTypes'
+import { DEFAULT_PRIORIDAD, PRIORIDADES, type PrioridadId } from '../constants/prioridades'
 import type { SuministroNecesario } from '../constants/supplies'
 
 const MAX_IMAGES = 10
@@ -25,6 +26,7 @@ export function CrearPage() {
   const [correosContacto, setCorreosContacto] = useState<string[]>([''])
   const [sitiosWeb, setSitiosWeb] = useState<string[]>([''])
   const [tipoLugar, setTipoLugar] = useState<TipoLugarId>(DEFAULT_TIPO_LUGAR)
+  const [prioridad, setPrioridad] = useState<PrioridadId>(DEFAULT_PRIORIDAD)
   const [suministros, setSuministros] = useState<SuministroNecesario[]>([])
   const [pendingImages, setPendingImages] = useState<File[]>([])
   const [previewUrls, setPreviewUrls] = useState<string[]>([])
@@ -132,6 +134,7 @@ export function CrearPage() {
         correosContacto: cleanContactList(correosContacto),
         sitiosWeb: cleanContactList(sitiosWeb),
         tipoLugar,
+        prioridad,
         suministrosNecesarios: suministros.map((item) => ({
           categoria: item.categoria,
           articulos: item.articulos.map((articulo) => articulo.trim()).filter(Boolean),
@@ -240,6 +243,34 @@ export function CrearPage() {
                 ))}
               </select>
             </label>
+
+            <div className="crear-field">
+              <span>
+                Prioridad de necesidad <span className="required-mark">*</span>
+              </span>
+              <div className="prioridad-picker" role="radiogroup" aria-label="Prioridad de necesidad">
+                {PRIORIDADES.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={prioridad === item.id}
+                    className={`prioridad-option prioridad-option-${item.id} ${prioridad === item.id ? 'selected' : ''}`}
+                    style={
+                      {
+                        '--prioridad-color': item.color,
+                        '--prioridad-light': item.light,
+                      } as CSSProperties
+                    }
+                    onClick={() => setPrioridad(item.id)}
+                  >
+                    <span className="prioridad-option-dot" aria-hidden="true" />
+                    <span className="prioridad-option-label">{item.label}</span>
+                    <span className="prioridad-option-hint">{item.hint}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </section>
 
           <section className="card crear-card">
@@ -337,13 +368,14 @@ export function CrearPage() {
                 onPositionChange={setPosition}
                 flyTo={flyTo}
                 tipoLugar={tipoLugar}
+                prioridad={prioridad}
                 height="400px"
               />
             </div>
           </section>
 
           <section className="card crear-card crear-grid-full">
-            <details className="crear-contact-details">
+            <details className="crear-contact-details" open>
               <summary className="crear-card-title crear-details-summary">
                 <span className="crear-step">4</span>
                 Contacto

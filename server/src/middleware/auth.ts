@@ -60,6 +60,8 @@ export function adminAuthMiddleware(req: AuthRequest, res: Response, next: NextF
 
 import type { TipoLugarId } from '../constants/placeTypes.js'
 import { DEFAULT_TIPO_LUGAR } from '../constants/placeTypes.js'
+import type { PrioridadId } from '../constants/prioridades.js'
+import { DEFAULT_PRIORIDAD } from '../constants/prioridades.js'
 import { normalizeSuministrosNecesarios } from '../utils/suministros.js'
 
 export function toPublicCentro(centro: {
@@ -67,6 +69,7 @@ export function toPublicCentro(centro: {
   email?: string
   nombre: string
   tipoLugar?: TipoLugarId
+  prioridad?: PrioridadId
   lat?: number
   lng?: number
   direccion?: string
@@ -85,6 +88,7 @@ export function toPublicCentro(centro: {
     email: centro.email,
     nombre: centro.nombre,
     tipoLugar: centro.tipoLugar ?? DEFAULT_TIPO_LUGAR,
+    prioridad: centro.prioridad ?? DEFAULT_PRIORIDAD,
     lat: centro.lat,
     lng: centro.lng,
     direccion: centro.direccion,

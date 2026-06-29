@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react'
 import { NavLink } from 'react-router-dom'
 import { fetchCentros, type Centro } from '../api/centros'
 import { resolveAssetUrl } from '../config/api'
@@ -7,6 +7,7 @@ import { CentrosMap } from '../components/CentrosMap'
 import { RelativeCreatedAt } from '../components/RelativeCreatedAt'
 import { SuministrosDisplay } from '../components/SuministrosDisplay'
 import { getTipoLugarLabel, TIPOS_LUGAR, type TipoLugarId } from '../constants/placeTypes'
+import { getPrioridad, PRIORIDADES, type PrioridadId } from '../constants/prioridades'
 import { getEstadoName, VENEZUELA_ESTADOS, type EstadoFilter } from '../constants/venezuelaEstados'
 import { countArticulos } from '../constants/supplies'
 import { matchesEstadoFilter, resolveEstado } from '../utils/estado'
@@ -16,6 +17,23 @@ type MapSelection =
   | { kind: 'hospital'; data: Hospital }
 
 type MapListItem = MapSelection
+
+function PrioridadBadge({ prioridad }: { prioridad: PrioridadId }) {
+  const item = getPrioridad(prioridad)
+  return (
+    <span
+      className={`prioridad-badge prioridad-badge-${prioridad}`}
+      style={
+        {
+          '--prioridad-color': item.color,
+          '--prioridad-light': item.light,
+        } as CSSProperties
+      }
+    >
+      {item.label}
+    </span>
+  )
+}
 
 function getSelectionId(selection: MapSelection | null) {
   if (!selection) return null
@@ -32,9 +50,19 @@ interface CentroCardProps {
 function CentroCard({ centro, expanded, onToggle, cardRef }: CentroCardProps) {
   const articulosCount = countArticulos(centro.suministrosNecesarios)
   const categoriasCount = centro.suministrosNecesarios.length
+  const prioridadItem = getPrioridad(centro.prioridad ?? 'media')
 
   return (
-    <li ref={cardRef} className={`centro-card ${expanded ? 'expanded' : ''}`}>
+    <li
+      ref={cardRef}
+      className={`centro-card prioridad-${centro.prioridad ?? 'media'} ${expanded ? 'expanded' : ''}`}
+      style={
+        {
+          '--prioridad-color': prioridadItem.color,
+          '--prioridad-light': prioridadItem.light,
+        } as CSSProperties
+      }
+    >
       <button
         type="button"
         className="centro-card-header"
@@ -43,7 +71,10 @@ function CentroCard({ centro, expanded, onToggle, cardRef }: CentroCardProps) {
       >
         <div className="centro-card-summary">
           <strong>{centro.nombre}</strong>
-          <span className="tipo-badge-inline">{getTipoLugarLabel(centro.tipoLugar)}</span>
+          <span className="centro-card-badges">
+            <span className="tipo-badge-inline">{getTipoLugarLabel(centro.tipoLugar)}</span>
+            <PrioridadBadge prioridad={centro.prioridad ?? 'media'} />
+          </span>
           <RelativeCreatedAt date={centro.createdAt} />
           {!expanded && centro.direccion && (
             <span className="centro-card-address">{centro.direccion}</span>
@@ -71,6 +102,10 @@ function CentroCard({ centro, expanded, onToggle, cardRef }: CentroCardProps) {
           )}
 
           {centro.direccion && <p className="centro-detail-address">{centro.direccion}</p>}
+
+          <p className="centro-detail-prioridad">
+            Prioridad: <PrioridadBadge prioridad={centro.prioridad ?? 'media'} />
+          </p>
 
           {typeof centro.lat === 'number' && typeof centro.lng === 'number' && (
             <a
@@ -184,6 +219,7 @@ export function MapaPage() {
   const [hospitales, setHospitales] = useState<Hospital[]>(() => getCachedHospitals() ?? [])
   const [selected, setSelected] = useState<MapSelection | null>(null)
   const [tipoFilters, setTipoFilters] = useState<Set<TipoLugarId>>(() => new Set())
+  const [prioridadFilters, setPrioridadFilters] = useState<Set<PrioridadId>>(() => new Set())
   const [estadoFilter, setEstadoFilter] = useState<EstadoFilter>('todos')
   const [nameSearch, setNameSearch] = useState('')
   const [loadingCentros, setLoadingCentros] = useState(true)
@@ -208,7 +244,8 @@ export function MapaPage() {
       .finally(() => setLoadingHospitales(false))
   }, [])
 
-  const showHospitales = tipoFilters.size === 0 || tipoFilters.has('hospital')
+  const showHospitales =
+    (tipoFilters.size === 0 || tipoFilters.has('hospital')) && prioridadFilters.size === 0
   const query = nameSearch.trim().toLowerCase()
   const showHospitalList =
     showHospitales && (tipoFilters.size > 0 || !!query || estadoFilter !== 'todos')
@@ -218,6 +255,9 @@ export function MapaPage() {
     if (tipoFilters.size > 0) {
       result = result.filter((centro) => tipoFilters.has(centro.tipoLugar))
     }
+    if (prioridadFilters.size > 0) {
+      result = result.filter((centro) => prioridadFilters.has(centro.prioridad ?? 'media'))
+    }
     if (estadoFilter !== 'todos') {
       result = result.filter((centro) => matchesEstadoFilter(centro, estadoFilter))
     }
@@ -225,7 +265,7 @@ export function MapaPage() {
       result = result.filter((centro) => centro.nombre.toLowerCase().includes(query))
     }
     return result
-  }, [centros, tipoFilters, estadoFilter, query])
+  }, [centros, tipoFilters, prioridadFilters, estadoFilter, query])
 
   const filteredHospitales = useMemo(() => {
     if (!showHospitales) return []
@@ -322,6 +362,19 @@ export function MapaPage() {
 
   function clearTipoFilters() {
     setTipoFilters(new Set())
+  }
+
+  function togglePrioridadFilter(prioridadId: PrioridadId) {
+    setPrioridadFilters((prev) => {
+      const next = new Set(prev)
+      if (next.has(prioridadId)) next.delete(prioridadId)
+      else next.add(prioridadId)
+      return next
+    })
+  }
+
+  function clearPrioridadFilters() {
+    setPrioridadFilters(new Set())
   }
 
   const loading = loadingCentros
@@ -424,6 +477,33 @@ export function MapaPage() {
               >
                 <span className="tipo-chip-dot" style={{ background: tipo.color }} />
                 {tipo.label}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="prioridad-filter">
+          <h3>Filtrar por prioridad</h3>
+          <div className="tipo-filter-chips prioridad-filter-chips">
+            <button
+              type="button"
+              className={`prioridad-chip ${prioridadFilters.size === 0 ? 'active' : ''}`}
+              onClick={clearPrioridadFilters}
+              aria-pressed={prioridadFilters.size === 0}
+            >
+              Todas
+            </button>
+            {PRIORIDADES.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`prioridad-chip prioridad-chip-${item.id} ${prioridadFilters.has(item.id) ? 'active' : ''}`}
+                style={{ '--chip-color': item.color } as CSSProperties}
+                onClick={() => togglePrioridadFilter(item.id)}
+                aria-pressed={prioridadFilters.has(item.id)}
+              >
+                <span className="tipo-chip-dot" style={{ background: item.color }} />
+                {item.label}
               </button>
             ))}
           </div>
@@ -532,6 +612,19 @@ export function MapaPage() {
           onSelectHospital={(hospital) => handleSelectHospital(hospital)}
           fullScreen
         />
+        <div className="mapa-prioridad-leyenda" aria-label="Leyenda de prioridades">
+          <span className="mapa-leyenda-title">Prioridad</span>
+          {PRIORIDADES.map((item) => (
+            <span
+              key={item.id}
+              className={`mapa-leyenda-item mapa-leyenda-${item.id}`}
+              style={{ '--leyenda-color': item.color } as CSSProperties}
+            >
+              <span className="mapa-leyenda-dot" aria-hidden="true" />
+              {item.label}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   )

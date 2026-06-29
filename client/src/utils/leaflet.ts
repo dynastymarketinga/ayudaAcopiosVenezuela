@@ -1,6 +1,7 @@
 import L from 'leaflet'
 import type { TipoLugarId } from '../constants/placeTypes'
 import { getTipoLugar } from '../constants/placeTypes'
+import { DEFAULT_PRIORIDAD, getPrioridad, type PrioridadId } from '../constants/prioridades'
 
 type MarkerVariant = 'default' | 'selected'
 
@@ -67,26 +68,35 @@ function getPlaceIconContent(tipo: TipoLugarId, accent: string): string {
 export function createCentroMarkerIcon(
   tipoLugar: TipoLugarId = 'centro_acopio',
   variant: MarkerVariant = 'default',
+  prioridad: PrioridadId = DEFAULT_PRIORIDAD,
 ) {
   const tipo = getTipoLugar(tipoLugar)
-  const fill = variant === 'selected' ? '#ea580c' : tipo.color
-  const iconColor = variant === 'selected' ? '#c2410c' : tipo.color
+  const prio = getPrioridad(prioridad)
+  const fill = prio.color
+  const iconColor = tipo.color
   const iconContent = getPlaceIconContent(tipoLugar, iconColor)
-  const filterId = `shadow-${tipoLugar}-${variant}`
+  const filterId = `shadow-${tipoLugar}-${variant}-${prioridad}`
+  const selectedClass = variant === 'selected' ? ' centro-marker-selected' : ''
+  const altaClass = prioridad === 'alta' ? ' centro-marker-prioridad-alta' : ''
+  const pulseRing =
+    prioridad === 'alta'
+      ? `<circle cx="22" cy="19" r="17" fill="none" stroke="${prio.color}" stroke-width="2.5" class="prioridad-pulse-ring"/>`
+      : ''
 
   const html = `
-    <div class="centro-marker-pin" aria-hidden="true">
+    <div class="centro-marker-pin${selectedClass}${altaClass}" style="--prioridad-color: ${prio.color}" aria-hidden="true">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 52" width="44" height="52">
         <defs>
           <filter id="${filterId}" x="-20%" y="-10%" width="140%" height="130%">
             <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.25"/>
           </filter>
         </defs>
+        ${pulseRing}
         <path
           filter="url(#${filterId})"
           fill="${fill}"
           stroke="#ffffff"
-          stroke-width="2.5"
+          stroke-width="${variant === 'selected' ? 3.5 : 2.5}"
           d="M22 3 C13.2 3 6 10.2 6 19 C6 31 22 49 22 49 C22 49 38 31 38 19 C38 10.2 30.8 3 22 3 Z"
         />
         <circle cx="22" cy="19" r="10" fill="#ffffff"/>
@@ -96,7 +106,7 @@ export function createCentroMarkerIcon(
   `
 
   return L.divIcon({
-    className: 'centro-marker',
+    className: `centro-marker centro-marker-${prioridad}`,
     html,
     iconSize: [44, 52],
     iconAnchor: [22, 50],

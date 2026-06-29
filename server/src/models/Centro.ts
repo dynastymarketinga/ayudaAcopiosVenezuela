@@ -1,5 +1,6 @@
 import { Schema, model, type Document } from 'mongoose'
 
+import { DEFAULT_PRIORIDAD, type PrioridadId } from '../constants/prioridades.js'
 import { DEFAULT_TIPO_LUGAR, type TipoLugarId } from '../constants/placeTypes.js'
 
 export interface SuministroNecesario {
@@ -12,6 +13,7 @@ export interface ICentro extends Document {
   password?: string
   nombre: string
   tipoLugar: TipoLugarId
+  prioridad: PrioridadId
   lat?: number
   lng?: number
   direccion?: string
@@ -40,6 +42,7 @@ const centroSchema = new Schema<ICentro>(
     password: { type: String },
     nombre: { type: String, required: true, trim: true },
     tipoLugar: { type: String, default: DEFAULT_TIPO_LUGAR },
+    prioridad: { type: String, default: DEFAULT_PRIORIDAD },
     lat: { type: Number },
     lng: { type: Number },
     direccion: { type: String, trim: true },

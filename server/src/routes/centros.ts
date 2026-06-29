@@ -20,6 +20,7 @@ import {
   validateWebsites,
 } from '../utils/contact.js'
 import { parseSuministrosNecesarios } from '../utils/suministros.js'
+import { isValidPrioridad } from '../constants/prioridades.js'
 import { resolveEstadoFromDireccion } from '../utils/estado.js'
 
 export const centrosRouter = Router()
@@ -102,6 +103,7 @@ centrosRouter.post('/', async (req, res) => {
     correosContacto,
     sitiosWeb,
     tipoLugar,
+    prioridad,
   } = req.body
 
   if (!nombre || typeof nombre !== 'string' || !nombre.trim()) {
@@ -121,6 +123,11 @@ centrosRouter.post('/', async (req, res) => {
 
   if (tipoLugar !== undefined && !isValidTipoLugar(tipoLugar)) {
     res.status(400).json({ message: 'Tipo de lugar inválido' })
+    return
+  }
+
+  if (prioridad !== undefined && !isValidPrioridad(prioridad)) {
+    res.status(400).json({ message: 'Prioridad inválida' })
     return
   }
 
@@ -174,6 +181,7 @@ centrosRouter.post('/', async (req, res) => {
     direccion: typeof direccion === 'string' ? direccion.trim() : '',
     estado: resolveEstadoFromDireccion(typeof direccion === 'string' ? direccion : undefined),
     tipoLugar: tipoLugar ?? undefined,
+    prioridad: prioridad ?? undefined,
     telefonos: parsedPhones,
     correosContacto: parsedEmails,
     sitiosWeb: normalizeWebsites(parsedWebsites),
@@ -198,7 +206,7 @@ centrosRouter.post('/:id/imagenes', (req, res, next) => {
 })
 
 centrosRouter.put('/me', authMiddleware, async (req: AuthRequest, res) => {
-  const { lat, lng, direccion, suministrosNecesarios, telefonos, correosContacto, sitiosWeb, tipoLugar, nombre } =
+  const { lat, lng, direccion, suministrosNecesarios, telefonos, correosContacto, sitiosWeb, tipoLugar, prioridad, nombre } =
     req.body
 
   const centro = await Centro.findById(req.centroId).select('-password')
@@ -242,6 +250,14 @@ centrosRouter.put('/me', authMiddleware, async (req: AuthRequest, res) => {
       return
     }
     centro.tipoLugar = tipoLugar
+  }
+
+  if (prioridad !== undefined) {
+    if (!isValidPrioridad(prioridad)) {
+      res.status(400).json({ message: 'Prioridad inválida' })
+      return
+    }
+    centro.prioridad = prioridad
   }
 
   if (telefonos !== undefined) {
