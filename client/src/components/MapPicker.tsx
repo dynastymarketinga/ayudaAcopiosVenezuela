@@ -1,6 +1,11 @@
 import { useEffect } from 'react'
 import { MapContainer, Marker, useMap, useMapEvents } from 'react-leaflet'
-import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../constants/map'
+import {
+  DEFAULT_MAP_CENTER,
+  DEFAULT_MAP_ZOOM,
+  VENEZUELA_BOUNDS,
+  VENEZUELA_MIN_ZOOM,
+} from '../constants/map'
 import type { TipoLugarId } from '../constants/placeTypes'
 import { DEFAULT_TIPO_LUGAR } from '../constants/placeTypes'
 import type { PrioridadId } from '../constants/prioridades'
@@ -55,7 +60,15 @@ export function MapPicker({
 
   return (
     <div className="map-container" style={{ height }}>
-      <MapContainer center={center} zoom={position ? 15 : DEFAULT_MAP_ZOOM} style={{ height: '100%', width: '100%' }}>
+      <MapContainer
+        center={center}
+        zoom={position ? 15 : DEFAULT_MAP_ZOOM}
+        minZoom={VENEZUELA_MIN_ZOOM}
+        maxBounds={VENEZUELA_BOUNDS}
+        maxBoundsViscosity={1}
+        worldCopyJump={false}
+        style={{ height: '100%', width: '100%' }}
+      >
         <MapTileLayers />
         <MapFlyTo target={flyTo} />
         <ClickHandler onPositionChange={onPositionChange} />

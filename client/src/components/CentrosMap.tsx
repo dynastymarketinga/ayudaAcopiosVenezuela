@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react'
 import { MapContainer, Marker } from 'react-leaflet'
 import type { Centro } from '../api/centros'
 import type { Hospital } from '../api/hospitals'
-import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../constants/map'
+import {
+  DEFAULT_MAP_CENTER,
+  DEFAULT_MAP_ZOOM,
+  VENEZUELA_BOUNDS,
+  VENEZUELA_MIN_ZOOM,
+} from '../constants/map'
 import { createCentroMarkerIcon } from '../utils/leaflet'
 import { HospitalClusterLayer } from './HospitalClusterLayer'
 import { MapTileLayers } from './MapTileLayers'
@@ -38,14 +43,14 @@ export function CentrosMap({
   )
 
   const center: [number, number] =
-    centrosConUbicacion.length > 0
+    !fullScreen && centrosConUbicacion.length > 0
       ? [centrosConUbicacion[0].lat!, centrosConUbicacion[0].lng!]
       : DEFAULT_MAP_CENTER
 
   const zoom =
-    centrosConUbicacion.length === 1
+    !fullScreen && centrosConUbicacion.length === 1
       ? 14
-      : centrosConUbicacion.length > 1
+      : !fullScreen && centrosConUbicacion.length > 1
         ? 6
         : DEFAULT_MAP_ZOOM
 
@@ -55,7 +60,15 @@ export function CentrosMap({
 
   return (
     <div className={`map-container ${fullScreen ? 'map-fullscreen' : ''}`}>
-      <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%' }}>
+      <MapContainer
+        center={center}
+        zoom={zoom}
+        minZoom={VENEZUELA_MIN_ZOOM}
+        maxBounds={VENEZUELA_BOUNDS}
+        maxBoundsViscosity={1}
+        worldCopyJump={false}
+        style={{ height: '100%', width: '100%' }}
+      >
         <MapTileLayers />
         {centrosConUbicacion.map((centro) => (
           <Marker
